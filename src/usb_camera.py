@@ -2,8 +2,11 @@
 
 import rospy
 import cv2 as cv
+from cv_bridge import CvBridge
 
 from sensor_msgs.msg import Image
+
+bridge = CvBridge()
 
 
 def usb_camera() -> None:
@@ -18,13 +21,7 @@ def usb_camera() -> None:
     while not rospy.is_shutdown():
         ret, frame = cap.read()
         if ret:
-            msg = Image()
-            msg.data = frame.tobytes()
-            msg.height = frame.shape[0]
-            msg.width = frame.shape[1]
-            msg.encoding = 'bgr8'
-            msg.step = frame.shape[1] * 3
-            pub.publish(msg)
+            pub.publish(bridge.cv2_to_imgmsg(frame))
         rate.sleep()
 
     cap.release()

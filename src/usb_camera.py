@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-import rospy
 import cv2 as cv
+import rospy
 from cv_bridge import CvBridge
-
 from sensor_msgs.msg import Image
-
-bridge = CvBridge()
 
 
 def usb_camera() -> None:
@@ -16,7 +13,8 @@ def usb_camera() -> None:
     cap.set(cv.CAP_PROP_FPS, 20)
     rospy.init_node('usb_camera')
     pub = rospy.Publisher('/image', Image, queue_size=1)
-    rate = rospy.Rate(20)
+    rate = rospy.Rate(30)
+    bridge = CvBridge()
 
     while not rospy.is_shutdown():
         ret, frame = cap.read()

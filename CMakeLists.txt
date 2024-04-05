@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(hockey-cup)
+project(hockey-cup C CXX ASM)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -138,22 +138,6 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/hockey-cup_node.cpp)
 
 add_subdirectory(src/mbot EXCLUDE_FROM_ALL SYSTEM)
-
-add_executable(drive_pico src/drive_pico.cpp)
-target_link_libraries(drive_pico
-        pico_stdlib
-        pico_multicore
-        pico_time
-        hardware_pwm
-        hardware_sync
-        hardware_i2c
-        hardware_flash
-        rclib
-        comms
-)
-pico_enable_stdio_usb(drive_pico 1)
-pico_enable_stdio_uart(drive_pico 0)
-pico_add_extra_outputs(drive_pico)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

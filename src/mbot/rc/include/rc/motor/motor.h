@@ -21,6 +21,8 @@
 
 #define DEFAULT_FREQ    25000
 
+#include <pico/types.h>
+
 typedef enum rc_motor_state {ON, OFF} rc_motor_state;
 
 int rc_motor_init();

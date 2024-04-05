@@ -23,6 +23,8 @@ constexpr float HALF_WHEEL_BASE = WHEEL_BASE / 2;
 
 std::array<int, 2> ENCODER_POLARITIES{1, 1};
 
+std::array<int, 2> MOTOR_CHANNELS{LEFT_MOTOR_CHANNEL, RIGHT_MOTOR_CHANNEL};
+
 std::array<rc_filter_t, 2> motor_pids{rc_filter_empty(), rc_filter_empty()};
 
 auto twist_callback(geometry_msgs::Twist const &twist) -> void {
@@ -31,11 +33,11 @@ auto twist_callback(geometry_msgs::Twist const &twist) -> void {
 
     std::array<int, 2> encoder_ticks{};
     for (std::size_t i = 0; i < encoder_ticks.size(); i++)
-        encoder_ticks[i] = ENCODER_POLARITIES[i] * rc_encoder_read_count(i);
+        encoder_ticks[i] = ENCODER_POLARITIES[i] * rc_encoder_read_count(MOTOR_CHANNELS[i]);
 
     std::array<int, 2> encoder_velocities{};
     for (std::size_t i = 0; i < encoder_velocities.size(); i++)
-        encoder_velocities[i] = ENCODER_POLARITIES[i] * rc_encoder_read_delta(i);
+        encoder_velocities[i] = ENCODER_POLARITIES[i] * rc_encoder_read_delta(MOTOR_CHANNELS[i]);
 
     auto linear_velocity = static_cast<float>(twist.linear.x);
     auto angular_velocity = static_cast<float>(twist.angular.z);
@@ -45,7 +47,7 @@ auto twist_callback(geometry_msgs::Twist const &twist) -> void {
 
     std::array<float, 2> duty_cycles{};
 
-    
+
 }
 
 auto initialize_hardware() -> void {

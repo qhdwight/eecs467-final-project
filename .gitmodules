@@ -1,0 +1,3 @@
+[submodule "src/mbot/lib/pico-sdk"]
+	path = src/mbot/lib/pico-sdk
+	url = https://github.com/rob102-staff/pico-sdk.git

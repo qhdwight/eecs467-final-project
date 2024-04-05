@@ -2,29 +2,50 @@
 #include <geometry_msgs/Twist.h>
 
 #include <pico/stdlib.h>
-#include <pico/mutex.h>
 #include <pico/multicore.h>
 #include <pico/time.h>
 #include <rc/motor/motor.h>
 #include <rc/encoder/encoder.h>
-#include <rc/motor/motor.h>
-#include <rc/mpu/mpu.h>
 #include <comms/common.h>
 #include <comms/protocol.h>
 #include <comms/listener.h>
 #include <comms/topic_data.h>
-#include <comms/messages_mb.h>
-
-constexpr uint LED_PIN = 25;
-constexpr uint MAIN_LOOP_HZ = 100;
-constexpr float MAIN_LOOP_PERIOD_S = 1.0f / MAIN_LOOP_HZ;
-constexpr float MAIN_LOOP_MS = MAIN_LOOP_PERIOD_S * 1000;
+#include <rc/defs/common_defs.h>
+#include <rc/math/filter.h>
 
 //auto update(repeating_timer_t *rt) -> bool {
 //    return false;
 //}
 
+constexpr float MAIN_LOOP_PERIOD_S = 1.0f / MAIN_LOOP_HZ;
+
+constexpr float HALF_WHEEL_BASE = WHEEL_BASE / 2;
+
+std::array<int, 2> ENCODER_POLARITIES{1, 1};
+
+std::array<rc_filter_t, 2> motor_pids{rc_filter_empty(), rc_filter_empty()};
+
 auto twist_callback(geometry_msgs::Twist const &twist) -> void {
+    rc_filter_pid(motor_pids.data() + 0, 0, 0, 0, 0, MAIN_LOOP_PERIOD_S);
+    rc_filter_pid(motor_pids.data() + 1, 0, 0, 0, 0, MAIN_LOOP_PERIOD_S);
+
+    std::array<int, 2> encoder_ticks{};
+    for (std::size_t i = 0; i < encoder_ticks.size(); i++)
+        encoder_ticks[i] = ENCODER_POLARITIES[i] * rc_encoder_read_count(i);
+
+    std::array<int, 2> encoder_velocities{};
+    for (std::size_t i = 0; i < encoder_velocities.size(); i++)
+        encoder_velocities[i] = ENCODER_POLARITIES[i] * rc_encoder_read_delta(i);
+
+    auto linear_velocity = static_cast<float>(twist.linear.x);
+    auto angular_velocity = static_cast<float>(twist.angular.z);
+
+    float left_speed = linear_velocity - angular_velocity * HALF_WHEEL_BASE;
+    float right_speed = linear_velocity + angular_velocity * HALF_WHEEL_BASE;
+
+    std::array<float, 2> duty_cycles{};
+
+    
 }
 
 auto initialize_hardware() -> void {

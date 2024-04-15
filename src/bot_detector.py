@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import cv2 as cv
+
+import geometry_msgs.msg
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -51,18 +53,27 @@ def bot_detector() -> None:
                 angle = np.linalg.norm(rvec)
                 axis = rvec / angle
 
-                transform = TransformStamped()
-                transform.header.stamp = rospy.Time.now()
-                transform.header.frame_id = 'map'
-                transform.child_frame_id = f'bot_{id[0]}'
-                transform.transform.translation.x = tvec[0][0]
-                transform.transform.translation.y = tvec[1][0]
-                transform.transform.translation.z = 0
-                transform.transform.rotation.x = axis[0] * np.sin(angle / 2)
-                transform.transform.rotation.y = axis[1] * np.sin(angle / 2)
-                transform.transform.rotation.z = axis[2] * np.sin(angle / 2)
-                transform.transform.rotation.w = np.cos(angle / 2)
-                broadcaster.sendTransform(transform)
+                # transform.header.stamp = rospy.Time.now()
+                # transform.header.frame_id = 'map'
+                # transform.child_frame_id = f'bot_{id[0]}'
+                # transform.transform.translation.x = tvec[0][0]
+                # transform.transform.translation.y = tvec[1][0]
+                # transform.transform.translation.z = 0
+                # transform.transform.rotation.x = axis[0] * np.sin(angle / 2)
+                # transform.transform.rotation.y = axis[1] * np.sin(angle / 2)
+                # transform.transform.rotation.z = axis[2] * np.sin(angle / 2)
+                # transform.transform.rotation.w = np.cos(angle / 2)
+                broadcaster.sendTransform(TransformStamped(
+                    header=rospy.Header(
+                        stamp=rospy.Time.now(),
+                        frame_id='map',
+                    ),
+                    child_frame_id=f'bot_{id[0]}',
+                    transform=geometry_msgs.msg.Transform(
+                        translation=geometry_msgs.msg.Vector3(*tvec.ravel()),
+                        rotation=geometry_msgs.msg.Quaternion(*axis * np.sin(angle / 2), np.cos(angle / 2)),
+                    ),
+                ))
             debug_image = cv.aruco.drawDetectedMarkers(frame.copy(), corners, ids)
         else:
             debug_image = frame

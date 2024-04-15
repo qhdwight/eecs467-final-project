@@ -13,9 +13,9 @@ def player() -> None:
 
     def game_state_callback(game_state: GameState) -> None:
         if game_state.turn == player_number:
-            print("My turn!")
+            ...
         else:
-            print("Not my turn...")
+            ...
 
     game_state_sub = rospy.Subscriber("game_state", GameState, game_state_callback)
 

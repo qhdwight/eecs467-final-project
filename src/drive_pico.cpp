@@ -1,5 +1,4 @@
 #include <ros/node_handle.h>
-#include <geometry_msgs/Twist.h>
 
 #include <pico/stdlib.h>
 #include <pico/mutex.h>
@@ -23,9 +22,6 @@ constexpr float MAIN_LOOP_MS = MAIN_LOOP_PERIOD_S * 1000;
 //auto update(repeating_timer_t *rt) -> bool {
 //    return false;
 //}
-
-auto twist_callback(geometry_msgs::Twist const &twist) -> void {
-}
 
 auto initialize_hardware() -> void {
     bi_decl(bi_program_description("The main binary for the MBot Pico Board."));
@@ -71,7 +67,7 @@ auto main(int argc, char **argv) -> int {
 
     initialize_hardware();
 
-    std::ignore = nh.subscribe("cmd_vel", 1, twist_callback);
+    // TODO: make a WheelVelocities subscriber
 
     ros::spin();
 

@@ -58,6 +58,14 @@ def bot_detector() -> None:
                 angle = np.linalg.norm(rvec)
                 axis = rvec / angle
 
+                axis *= -1
+                angle += np.pi
+
+                tvec[0] *= -1
+
+                position = np.vstack((tvec[:2], 0))
+                orientation = np.vstack((np.sin(angle / 2) * axis, np.cos(angle / 2)))
+
                 broadcaster.sendTransform(TransformStamped(
                     header=rospy.Header(
                         stamp=rospy.Time.now(),
@@ -65,8 +73,8 @@ def bot_detector() -> None:
                     ),
                     child_frame_id=f'bot_{id[0]}',
                     transform=geometry_msgs.msg.Transform(
-                        translation=geometry_msgs.msg.Vector3(*tvec.ravel()[:2], 0),
-                        rotation=geometry_msgs.msg.Quaternion(*axis.ravel() * np.sin(angle / 2), np.cos(angle / 2)),
+                        translation=geometry_msgs.msg.Vector3(*position.ravel()),
+                        rotation=geometry_msgs.msg.Quaternion(*orientation.ravel()),
                     ),
                 ))
             debug_image = cv.aruco.drawDetectedMarkers(frame.copy(), corners, ids)

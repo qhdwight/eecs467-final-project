@@ -15,7 +15,7 @@ IMAGE_HEIGHT = 480
 
 # Overhead camera
 # Position in the sky and look towards the origin
-CAMERA_VIEW_MAT = p.computeViewMatrix([0, 0, 1.2], [0, 0, 0], [1, 0, 0])
+CAMERA_VIEW_MAT = p.computeViewMatrix([0, 0, 1.0387584], [0, 0, 0], [1, 0, 0])
 CAMERA_PROJ_MAT = p.computeProjectionMatrixFOV(100, IMAGE_WIDTH / IMAGE_HEIGHT, 0.1, 100)
 
 
@@ -35,6 +35,8 @@ def simulator() -> None:
     mbot_2 = p.loadURDF("mbot_2.urdf", [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14]))
 
     p.loadURDF("ball.urdf", [0.3, 0, 0.1])
+
+    p.loadURDF("field.urdf", [0, 0, 0])
 
     joint_name_to_id = {p.getJointInfo(mbot_1, i)[1].decode('utf-8'): i for i in range(p.getNumJoints(mbot_1))}
 

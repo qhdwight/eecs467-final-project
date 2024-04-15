@@ -20,7 +20,8 @@ def motion_planner() -> None:
         # TODO: RTR controller
         ...
 
-    server = actionlib.SimpleActionServer("follow_path", FollowPathAction, follow_path_callback, auto_start=False).start()
+    server = actionlib.SimpleActionServer("follow_path", FollowPathAction, follow_path_callback, auto_start=False)
+    server.start()
 
     rospy.spin()
 

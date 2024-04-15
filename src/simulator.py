@@ -2,13 +2,16 @@
 
 from pathlib import Path
 
-import numpy as np
 import pybullet as p
 import pybullet_data as pd
 
 import rospy
 from hockey_cup.msg import WheelVelocities
 from sensor_msgs.msg import Image
+
+IMAGE_UPDATE_RATE = 20
+IMAGE_WIDTH = 320
+IMAGE_HEIGHT = 240
 
 
 def simulator() -> None:
@@ -39,7 +42,7 @@ def simulator() -> None:
     image_pub = rospy.Publisher('image', Image, queue_size=1)
 
     def publish_image():
-        data = p.getCameraImage(320, 240)
+        data = p.getCameraImage(IMAGE_WIDTH, IMAGE_HEIGHT)
         width, height, rgba, *_ = data
         image_pub.publish(Image(
             header=rospy.Header(
@@ -49,10 +52,10 @@ def simulator() -> None:
             height=height,
             encoding='rgba8',
             step=width * 4,
-            data=np.asarray(rgba, dtype=np.uint8).tobytes(),
+            data=rgba.tobytes(),
         ))
 
-    rospy.Timer(rospy.Duration(1 / 20), lambda _: publish_image())
+    rospy.Timer(rospy.Duration(1 / IMAGE_UPDATE_RATE), lambda _: publish_image())
 
     rospy.spin()
 

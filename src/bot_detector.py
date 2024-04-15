@@ -29,7 +29,7 @@ def bot_detector() -> None:
 
         if corners:
             for corner, id in zip(corners, ids):
-                side_length = 1
+                side_length = 0.1
                 square = np.array([
                     [-side_length / 2, -side_length / 2, 0],
                     [side_length / 2, -side_length / 2, 0],

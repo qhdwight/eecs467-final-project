@@ -9,9 +9,14 @@ import rospy
 from hockey_cup.msg import WheelVelocities
 from sensor_msgs.msg import Image
 
-IMAGE_UPDATE_RATE = 20
+IMAGE_UPDATE_RATE = 10
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
+
+# Overhead camera
+# Position in the sky and look towards the origin
+CAMERA_VIEW_MAT = p.computeViewMatrix([0, 0, 1.2], [0, 0, 0], [1, 0, 0])
+CAMERA_PROJ_MAT = p.computeProjectionMatrixFOV(100, IMAGE_WIDTH / IMAGE_HEIGHT, 0.1, 100)
 
 
 def simulator() -> None:
@@ -26,8 +31,8 @@ def simulator() -> None:
 
     package_path = Path(__file__).parent.parent
     p.setAdditionalSearchPath(str(package_path / 'urdf'))
-    mbot_1 = p.loadURDF("mbot.urdf", [-1, 0, 0.5])
-    mbot_2 = p.loadURDF("mbot.urdf", [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14]))
+    mbot_1 = p.loadURDF("mbot_1.urdf", [-1, 0, 0.5])
+    mbot_2 = p.loadURDF("mbot_2.urdf", [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14]))
 
     p.loadURDF("ball.urdf", [0.3, 0, 0.1])
 
@@ -48,7 +53,7 @@ def simulator() -> None:
     image_pub = rospy.Publisher('image', Image, queue_size=1)
 
     def publish_image() -> None:
-        data = p.getCameraImage(IMAGE_WIDTH, IMAGE_HEIGHT)
+        data = p.getCameraImage(IMAGE_WIDTH, IMAGE_HEIGHT, CAMERA_VIEW_MAT, CAMERA_PROJ_MAT)
         width, height, rgba, *_ = data
         image_pub.publish(Image(
             header=rospy.Header(

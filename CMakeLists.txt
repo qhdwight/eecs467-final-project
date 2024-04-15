@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(hockey-cup C CXX ASM)
+project(hockey_cup C CXX ASM)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -49,11 +49,10 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+        FILES
+        WheelVelocities.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +69,10 @@ catkin_python_setup()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+        DEPENDENCIES
+        std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -137,7 +136,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/hockey-cup_node.cpp)
 
-add_subdirectory(src/mbot EXCLUDE_FROM_ALL SYSTEM)
+#add_subdirectory(src/mbot EXCLUDE_FROM_ALL SYSTEM)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

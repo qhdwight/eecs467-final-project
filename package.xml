@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>hockey-cup</name>
+  <name>hockey_cup</name>
   <version>0.0.0</version>
-  <description>The hockey-cup package</description>
+  <description>The Hockey Cup package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

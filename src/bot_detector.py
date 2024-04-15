@@ -19,8 +19,8 @@ def bot_detector() -> None:
 
     debug_image_publisher = rospy.Publisher('/debug_image', Image, queue_size=1)
 
-    def image_callback(data: Image) -> None:
-        frame = bridge.imgmsg_to_cv2(data)
+    def image_callback(message: Image) -> None:
+        frame = bridge.imgmsg_to_cv2(message)
         corners, ids, _rejected = detector.detectMarkers(frame)
 
         if corners:

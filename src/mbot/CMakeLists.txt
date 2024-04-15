@@ -1,17 +1,19 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/pico-sdk)
-include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
+set(PICO_CMAKE_FILE ${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-project(mbot_pico C CXX ASM)
+if (EXISTS ${PICO_CMAKE_FILE})
+    include(${PICO_CMAKE_FILE})
 
-# Initialize the SDK
-pico_sdk_init()
+    project(mbot_pico C CXX ASM)
 
-add_subdirectory(rc)
-add_subdirectory(comms)
+    # Initialize the SDK
+    pico_sdk_init()
 
-if (catkin_FOUND)
+    add_subdirectory(rc)
+    add_subdirectory(comms)
+
     add_executable(drive_pico drive/drive.cpp)
     target_link_libraries(drive_pico
             pico_stdlib
@@ -27,4 +29,6 @@ if (catkin_FOUND)
     pico_enable_stdio_usb(drive_pico 1)
     pico_enable_stdio_uart(drive_pico 0)
     pico_add_extra_outputs(drive_pico)
+else ()
+    message(STATUS "Pico SDK not found")
 endif ()

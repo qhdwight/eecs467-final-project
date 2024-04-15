@@ -10,20 +10,25 @@ from hockey_cup.msg import WheelVelocities
 from sensor_msgs.msg import Image
 
 IMAGE_UPDATE_RATE = 20
-IMAGE_WIDTH = 320
-IMAGE_HEIGHT = 240
+IMAGE_WIDTH = 640
+IMAGE_HEIGHT = 480
 
 
 def simulator() -> None:
     rospy.init_node('simulator')
 
     p.connect(p.GUI)
-    p.setAdditionalSearchPath(pd.getDataPath())
     p.setGravity(0, 0, -9.81)
     p.setRealTimeSimulation(1)
+
+    p.setAdditionalSearchPath(pd.getDataPath())
     p.loadURDF("plane.urdf")
+
     package_path = Path(__file__).parent.parent
-    mbot = p.loadURDF(str(package_path / "urdf" / "mbot.urdf"), [0, 0, 0.5])
+    p.setAdditionalSearchPath(str(package_path / 'urdf'))
+    mbot = p.loadURDF("mbot.urdf", [0, 0, 0.5])
+
+    p.loadURDF("ball.urdf", [0.3, 0, 0.1])
 
     joint_name_to_id = {p.getJointInfo(mbot, i)[1].decode('utf-8'): i for i in range(p.getNumJoints(mbot))}
 
@@ -41,7 +46,7 @@ def simulator() -> None:
 
     image_pub = rospy.Publisher('image', Image, queue_size=1)
 
-    def publish_image():
+    def publish_image() -> None:
         data = p.getCameraImage(IMAGE_WIDTH, IMAGE_HEIGHT)
         width, height, rgba, *_ = data
         image_pub.publish(Image(

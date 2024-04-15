@@ -2,7 +2,7 @@
     <link name="base_link">
         <visual>
             <geometry>
-                <box size="0.16 0.16 0.12"/>
+                <box size="0.18 0.15 0.12"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 0.085"/>
             <material name="white">
@@ -20,7 +20,7 @@
     <link name="left_wheel">
         <visual>
             <geometry>
-                <cylinder length="0.008" radius="0.046"/>
+                <cylinder length="0.008" radius="0.042"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <material name="black">
@@ -29,7 +29,7 @@
         </visual>
         <collision>
             <geometry>
-                <cylinder length="0.008" radius="0.046"/>
+                <cylinder length="0.008" radius="0.042"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 0"/>
         </collision>
@@ -72,7 +72,7 @@
             <geometry>
                 <cylinder length="0.060" radius="0.023"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0.13 0 0.08"/>
+            <origin rpy="0 0 0" xyz="-0.13 0 0.08"/>
             <material name="white">
                 <color rgba="1 1 1 1"/>
             </material>
@@ -106,6 +106,20 @@
     <joint name="base_to_front_wheel" type="fixed">
         <parent link="base_link"/>
         <child link="front_wheel"/>
-        <origin xyz="0.13 0 0.02" rpy="0 0 0"/>
+        <origin xyz="-0.13 0 0.022" rpy="0 0 0"/>
+    </joint>
+
+    <link name="aruco_tag">
+        <visual>
+            <geometry>
+                <mesh filename="aruco_0.obj"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="base_to_aruco_tag" type="fixed">
+        <parent link="base_link"/>
+        <child link="aruco_tag"/>
+        <origin xyz="0 0 0.2" rpy="0 0 0"/>
     </joint>
 </robot>

@@ -23,6 +23,8 @@ def bot_detector() -> None:
 
     def image_callback(message: Image) -> None:
         frame = bridge.imgmsg_to_cv2(message)
+        if message.encoding == 'rgba8':
+            frame = cv.cvtColor(frame, cv.COLOR_RGBA2BGR)
         corners, ids, _rejected = detector.detectMarkers(frame)
 
         if corners:
@@ -50,19 +52,12 @@ def bot_detector() -> None:
                     camera_matrix,
                     distortions,
                 )
+                if np.isnan(tvec).any() or np.isnan(rvec).any():
+                    continue
+
                 angle = np.linalg.norm(rvec)
                 axis = rvec / angle
 
-                # transform.header.stamp = rospy.Time.now()
-                # transform.header.frame_id = 'map'
-                # transform.child_frame_id = f'bot_{id[0]}'
-                # transform.transform.translation.x = tvec[0][0]
-                # transform.transform.translation.y = tvec[1][0]
-                # transform.transform.translation.z = 0
-                # transform.transform.rotation.x = axis[0] * np.sin(angle / 2)
-                # transform.transform.rotation.y = axis[1] * np.sin(angle / 2)
-                # transform.transform.rotation.z = axis[2] * np.sin(angle / 2)
-                # transform.transform.rotation.w = np.cos(angle / 2)
                 broadcaster.sendTransform(TransformStamped(
                     header=rospy.Header(
                         stamp=rospy.Time.now(),
@@ -70,8 +65,8 @@ def bot_detector() -> None:
                     ),
                     child_frame_id=f'bot_{id[0]}',
                     transform=geometry_msgs.msg.Transform(
-                        translation=geometry_msgs.msg.Vector3(*tvec.ravel()),
-                        rotation=geometry_msgs.msg.Quaternion(*axis * np.sin(angle / 2), np.cos(angle / 2)),
+                        translation=geometry_msgs.msg.Vector3(*tvec.ravel()[:2], 0),
+                        rotation=geometry_msgs.msg.Quaternion(*axis.ravel() * np.sin(angle / 2), np.cos(angle / 2)),
                     ),
                 ))
             debug_image = cv.aruco.drawDetectedMarkers(frame.copy(), corners, ids)

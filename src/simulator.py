@@ -26,18 +26,19 @@ def simulator() -> None:
 
     package_path = Path(__file__).parent.parent
     p.setAdditionalSearchPath(str(package_path / 'urdf'))
-    mbot = p.loadURDF("mbot.urdf", [0, 0, 0.5])
+    mbot_1 = p.loadURDF("mbot.urdf", [-1, 0, 0.5])
+    mbot_2 = p.loadURDF("mbot.urdf", [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14]))
 
     p.loadURDF("ball.urdf", [0.3, 0, 0.1])
 
-    joint_name_to_id = {p.getJointInfo(mbot, i)[1].decode('utf-8'): i for i in range(p.getNumJoints(mbot))}
+    joint_name_to_id = {p.getJointInfo(mbot_1, i)[1].decode('utf-8'): i for i in range(p.getNumJoints(mbot_1))}
 
     # Movement
 
     def cmd_wheel_vels_callback(message: WheelVelocities) -> None:
-        p.setJointMotorControl2(mbot, joint_name_to_id['base_to_left_wheel'],
+        p.setJointMotorControl2(mbot_1, joint_name_to_id['base_to_left_wheel'],
                                 p.VELOCITY_CONTROL, targetVelocity=-message.left)
-        p.setJointMotorControl2(mbot, joint_name_to_id['base_to_right_wheel'],
+        p.setJointMotorControl2(mbot_1, joint_name_to_id['base_to_right_wheel'],
                                 p.VELOCITY_CONTROL, targetVelocity=message.right)
 
     rospy.Subscriber('cmd_wheel_vels', WheelVelocities, cmd_wheel_vels_callback)

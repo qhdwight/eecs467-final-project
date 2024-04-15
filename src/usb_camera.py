@@ -11,8 +11,8 @@ def usb_camera() -> None:
     rospy.init_node('usb_camera')
 
     cap = cv.VideoCapture(0)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
     cap.set(cv.CAP_PROP_FPS, 30)
 
     topic = rospy.get_param('~topic', '/image')

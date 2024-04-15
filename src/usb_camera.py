@@ -15,9 +15,12 @@ def usb_camera() -> None:
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv.CAP_PROP_FPS, 30)
 
-    pub = rospy.Publisher('/image', Image, queue_size=1)
-    rate = rospy.Rate(30)
+    topic = rospy.get_param('~topic', '/image')
+    pub = rospy.Publisher(topic, Image, queue_size=1)
+
     bridge = CvBridge()
+
+    rate = rospy.Rate(30)
 
     while not rospy.is_shutdown():
         ret, frame = cap.read()

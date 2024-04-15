@@ -9,8 +9,13 @@ UPDATE_RATE = 20
 def player() -> None:
     rospy.init_node("game")
 
-    def game_state_callback(msg: GameState) -> None:
-        ...
+    player_number = rospy.get_param("~player_number")
+
+    def game_state_callback(game_state: GameState) -> None:
+        if game_state.turn == player_number:
+            print("My turn!")
+        else:
+            print("Not my turn...")
 
     game_state_sub = rospy.Subscriber("game_state", GameState, game_state_callback)
 

@@ -1,4 +1,8 @@
 <launch>
     <node name="simulator" pkg="hockey_cup" type="simulator.py" output="screen"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find hockey_cup)/config/rviz.rviz" output="screen"/>
+
     <node name="diff_drive" pkg="hockey_cup" type="diff_drive.py" output="screen"/>
+
+    <node name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
 </launch>

@@ -84,7 +84,7 @@ def bot_detector() -> None:
         debug_image_publisher.publish(bridge.cv2_to_imgmsg(debug_image))
 
     image_topic = rospy.get_param('~image_topic', '/image')
-    rospy.Subscriber(imgae_topic, Image, image_callback)
+    rospy.Subscriber(image_topic, Image, image_callback)
 
     rospy.spin()
 

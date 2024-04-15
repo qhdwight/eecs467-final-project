@@ -13,6 +13,7 @@ from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 
 IMAGE_UPDATE_RATE = 10
+TF_UPDATE_RATE = 10
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 
@@ -87,7 +88,7 @@ def simulator() -> None:
         ))
 
     rospy.Timer(rospy.Duration(1 / IMAGE_UPDATE_RATE), lambda _: publish_image())
-    rospy.Timer(rospy.Duration(1 / 10), lambda _: publish_tf())
+    rospy.Timer(rospy.Duration(1 / TF_UPDATE_RATE), lambda _: publish_tf())
 
     rospy.spin()
 

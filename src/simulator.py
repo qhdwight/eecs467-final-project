@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
+
 import pybullet as p
 import pybullet_data as pd
 
 import rospy
-
-from pathlib import Path
+from hockey_cup.msg import WheelVelocities
 
 
 def simulator() -> None:
@@ -17,9 +18,17 @@ def simulator() -> None:
     p.setRealTimeSimulation(1)
     p.loadURDF("plane.urdf")
     package_path = Path(__file__).parent.parent
-    p.loadURDF(str(package_path / "urdf" / "mbot.urdf"), [0, 0, 0.5])
+    mbot = p.loadURDF(str(package_path / "urdf" / "mbot.urdf"), [0, 0, 0.5])
 
-    def
+    joint_name_to_id = {p.getJointInfo(mbot, i)[1].decode('utf-8'): i for i in range(p.getNumJoints(mbot))}
+
+    def cmd_wheel_vels_callback(message: WheelVelocities) -> None:
+        p.setJointMotorControl2(mbot, joint_name_to_id['base_to_left_wheel'],
+                                p.VELOCITY_CONTROL, targetVelocity=-message.left)
+        p.setJointMotorControl2(mbot, joint_name_to_id['base_to_right_wheel'],
+                                p.VELOCITY_CONTROL, targetVelocity=message.right)
+
+    rospy.Subscriber('cmd_wheel_vels', WheelVelocities, cmd_wheel_vels_callback)
 
     rospy.spin()
 

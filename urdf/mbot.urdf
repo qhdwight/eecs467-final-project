@@ -114,6 +114,9 @@
             <geometry>
                 <mesh filename="aruco_0.obj"/>
             </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
         </visual>
     </link>
 

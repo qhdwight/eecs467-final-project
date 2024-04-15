@@ -19,7 +19,8 @@ def bot_detector() -> None:
     bridge = CvBridge()
     detector = cv.aruco.ArucoDetector(cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_50))
 
-    debug_image_publisher = rospy.Publisher('/debug_image', Image, queue_size=1)
+    debug_image_topic = rospy.get_param('~debug_image_topic', '/debug_image')
+    debug_image_publisher = rospy.Publisher(debug_image_topic, Image, queue_size=1)
 
     def image_callback(message: Image) -> None:
         frame = bridge.imgmsg_to_cv2(message)
@@ -82,7 +83,9 @@ def bot_detector() -> None:
             debug_image = frame
         debug_image_publisher.publish(bridge.cv2_to_imgmsg(debug_image))
 
-    rospy.Subscriber('/image', Image, image_callback)
+    image_topic = rospy.get_param('~image_topic', '/image')
+    rospy.Subscriber(imgae_topic, Image, image_callback)
+
     rospy.spin()
 
 

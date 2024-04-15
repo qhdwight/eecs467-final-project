@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
         std_msgs
         sensor_msgs
         tf2_ros
+        actionlib_msgs
+        message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -52,6 +54,7 @@ catkin_python_setup()
 add_message_files(
         FILES
         WheelVelocities.msg
+        GameState.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -62,16 +65,17 @@ add_message_files(
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  FILES
+  FollowPath.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
         DEPENDENCIES
         std_msgs
+        actionlib_msgs
+        geometry_msgs
 )
 
 ################################################
@@ -117,7 +121,6 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-        # include
         ${catkin_INCLUDE_DIRS}
 )
 

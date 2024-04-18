@@ -5,4 +5,6 @@
     <node name="diff_drive" pkg="hockey_cup" type="diff_drive.py" output="screen"/>
 
     <node name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
+
+    <node name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
 </launch>

@@ -4,20 +4,26 @@ from pathlib import Path
 
 import pybullet as p
 import pybullet_data as pd
+import geometry_msgs.msg
 
 import rospy
 from hockey_cup.msg import WheelVelocities
 from sensor_msgs.msg import Image
+from tf2_ros import TransformBroadcaster
+from geometry_msgs.msg import TransformStamped
 
 IMAGE_UPDATE_RATE = 10
+TF_UPDATE_RATE = 10
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 
 # Overhead camera
 # Position in the sky and look towards the origin
-CAMERA_VIEW_MAT = p.computeViewMatrix([0, 0, 1.0387584], [0, 0, 0], [1, 0, 0])
+CAMERA_POSE = [0, 0, 1.2]
+CAMERA_VIEW_MAT = p.computeViewMatrix(CAMERA_POSE, [0, 0, 0], [1, 0, 0])
 CAMERA_PROJ_MAT = p.computeProjectionMatrixFOV(100, IMAGE_WIDTH / IMAGE_HEIGHT, 0.1, 100)
 
+tf_broadcaster = TransformBroadcaster()
 
 def simulator() -> None:
     rospy.init_node('simulator')
@@ -50,6 +56,21 @@ def simulator() -> None:
 
     rospy.Subscriber('cmd_wheel_vels', WheelVelocities, cmd_wheel_vels_callback)
 
+    # TF
+
+    def publish_tf() -> None:
+        tf_broadcaster.sendTransform(TransformStamped(
+            header=rospy.Header(
+                stamp=rospy.Time.now(),
+                frame_id='map',
+            ),
+            child_frame_id=f'camera_frame',
+            transform=geometry_msgs.msg.Transform(
+                translation=geometry_msgs.msg.Vector3(*CAMERA_POSE),
+                rotation=geometry_msgs.msg.Quaternion(*[0, 0, 0, 1]),
+            ),
+        ))
+
     # Image
 
     image_pub = rospy.Publisher('image', Image, queue_size=1)
@@ -69,6 +90,7 @@ def simulator() -> None:
         ))
 
     rospy.Timer(rospy.Duration(1 / IMAGE_UPDATE_RATE), lambda _: publish_image())
+    rospy.Timer(rospy.Duration(1 / TF_UPDATE_RATE), lambda _: publish_tf())
 
     rospy.spin()
 

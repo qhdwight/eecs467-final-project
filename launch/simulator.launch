@@ -2,7 +2,13 @@
     <node name="simulator" pkg="hockey_cup" type="simulator.py" output="screen"/>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find hockey_cup)/config/rviz.rviz" output="screen"/>
 
-    <node name="diff_drive" pkg="hockey_cup" type="diff_drive.py" output="screen"/>
+    <include file="$(find hockey_cup)/launch/mbot.launch">
+        <arg name="number" value="0"/>
+    </include>
+
+    <include file="$(find hockey_cup)/launch/mbot.launch">
+        <arg name="number" value="1"/>
+    </include>
 
     <node name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
 

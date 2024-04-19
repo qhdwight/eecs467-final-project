@@ -14,7 +14,8 @@ WHEEL_RADIUS = 0.042
 def diff_drive() -> None:
     rospy.init_node('diff_drive')
 
-    cmd_wheel_vels_topic = rospy.get_param('~cmd_wheel_vels_topic', 'cmd_wheel_vels')
+    number = rospy.get_param('~number', 0)
+    cmd_wheel_vels_topic = f'cmd_wheel_vels_{number}'
     cmd_wheel_vels_pub = rospy.Publisher(cmd_wheel_vels_topic, WheelVelocities, queue_size=1)
 
     def twist_callback(message: Twist) -> None:
@@ -24,7 +25,7 @@ def diff_drive() -> None:
         ]) @ np.array([message.linear.x, message.angular.z]) / WHEEL_RADIUS
         cmd_wheel_vels_pub.publish(WheelVelocities(*wheel_speeds))
 
-    cmd_vel_topic = rospy.get_param('~cmd_vel_topic', 'cmd_vel')
+    cmd_vel_topic = f'cmd_vel_{number}'
     rospy.Subscriber(cmd_vel_topic, Twist, twist_callback)
 
     rospy.spin()

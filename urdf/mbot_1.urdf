@@ -112,7 +112,7 @@
     <link name="aruco_tag">
         <visual>
             <geometry>
-                <mesh filename="aruco_0.obj"/>
+                <mesh filename="aruco_1.obj"/>
             </geometry>
             <material name="white">
                 <color rgba="1 1 1 1"/>

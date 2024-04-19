@@ -59,7 +59,7 @@ def image_callback(data: Image) -> None:
                 stamp=rospy.Time.now(),
                 frame_id='map',
             ),
-            child_frame_id=f'ball_frame',
+            child_frame_id=f'ball',
             transform=geometry_msgs.msg.Transform(
                 translation=geometry_msgs.msg.Vector3(pos_x, pos_y, 0),
                 rotation=geometry_msgs.msg.Quaternion(*[0,0,0,1]),

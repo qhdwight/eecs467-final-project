@@ -32,13 +32,13 @@ def game() -> None:
         except (LookupException, ConnectivityException, ExtrapolationException):
             ball_in_map = None
 
-        match ball_in_map:
-            case None:
-                turn = -1
-            case _ if ball_in_map.transform.translation.x < 0:
-                turn = 0
-            case _:
-                turn = 1
+        if ball_in_map is None:
+            turn = -1
+            rospy.logwarn("Ball not found")
+        elif ball_in_map.transform.translation.x < 0:
+            turn = 0
+        else:
+            turn = 1
 
         game_state_pub.publish(GameState(turn, SCORES))
 

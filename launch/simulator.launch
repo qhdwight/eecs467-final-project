@@ -13,4 +13,6 @@
     <node name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
 
     <node name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
+
+    <node name="game" pkg="hockey_cup" type="game.py" output="screen"/>
 </launch>

@@ -20,7 +20,7 @@ IMAGE_HEIGHT = 480
 # Overhead camera
 # Position in the sky and look towards the origin
 CAMERA_POSE = [0, 0, 1.2]
-CAMERA_VIEW_MAT = p.computeViewMatrix(CAMERA_POSE, [0, 0, 0], [1, 0, 0])
+CAMERA_VIEW_MAT = p.computeViewMatrix(CAMERA_POSE, [0, 0, 0], [0, 1, 0])
 CAMERA_PROJ_MAT = p.computeProjectionMatrixFOV(100, IMAGE_WIDTH / IMAGE_HEIGHT, 0.1, 100)
 
 tf_broadcaster = TransformBroadcaster()
@@ -43,6 +43,8 @@ class MBot:
 def simulator() -> None:
     rospy.init_node('simulator')
 
+    use_ground_truth = rospy.get_param('~use_ground_truth', False)
+
     p.connect(p.GUI)
     p.setGravity(0, 0, -9.81)
     p.setRealTimeSimulation(1)
@@ -53,12 +55,14 @@ def simulator() -> None:
     package_path = Path(__file__).parent.parent
     p.setAdditionalSearchPath(str(package_path / 'urdf'))
 
-    MBot(0, [-1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 0]))
-    MBot(1, [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14]))
+    mbots = [
+        MBot(0, [-1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 0])),
+        MBot(1, [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14])),
+    ]
 
-    p.loadURDF("ball.urdf", [0.3, 0, 0.1])
+    ball = p.loadURDF("ball.urdf", [0.3, 0, 0.1])
 
-    p.loadURDF("field.urdf", [0, 0, 0])
+    # p.loadURDF("field.urdf", [0, 0, 0])
 
     # TF
 
@@ -68,12 +72,29 @@ def simulator() -> None:
                 stamp=rospy.Time.now(),
                 frame_id='map',
             ),
-            child_frame_id=f'camera_frame',
+            child_frame_id=f'camera',
             transform=geometry_msgs.msg.Transform(
                 translation=geometry_msgs.msg.Vector3(*CAMERA_POSE),
-                rotation=geometry_msgs.msg.Quaternion(*[0, 0, 0, 1]),
+                rotation=geometry_msgs.msg.Quaternion(0, 0, 0, 1),
             ),
         ))
+        def publish_urdf_to_tf(urdf, name: str) -> None:
+            pos, rot = p.getBasePositionAndOrientation(urdf)
+            tf_broadcaster.sendTransform(TransformStamped(
+                header=rospy.Header(
+                    stamp=rospy.Time.now(),
+                    frame_id='map',
+                ),
+                child_frame_id=name,
+                transform=geometry_msgs.msg.Transform(
+                    translation=geometry_msgs.msg.Vector3(*pos),
+                    rotation=geometry_msgs.msg.Quaternion(*rot),
+                ),
+            ))
+        for mbot in mbots:
+            publish_urdf_to_tf(mbot.urdf, f'bot_{mbot.number}{"" if use_ground_truth else "_ground"}')
+        publish_urdf_to_tf(ball, 'ball' if use_ground_truth else 'ball_ground')
+
 
     # Image
 
@@ -93,7 +114,8 @@ def simulator() -> None:
             data=rgba.tobytes(),
         ))
 
-    rospy.Timer(rospy.Duration(1 / IMAGE_UPDATE_RATE), lambda _: publish_image())
+    if not use_ground_truth:
+        rospy.Timer(rospy.Duration(1 / IMAGE_UPDATE_RATE), lambda _: publish_image())
     rospy.Timer(rospy.Duration(1 / TF_UPDATE_RATE), lambda _: publish_tf())
 
     rospy.spin()

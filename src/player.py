@@ -15,8 +15,6 @@ from tf2_ros import (
 
 from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
 
-from transforms import to_se2
-
 import math
 
 UPDATE_RATE = 20
@@ -32,6 +30,19 @@ def player() -> None:
 
     tf2_broadcaster = TransformBroadcaster()
 
+    def push_goal_to_tf(x: float, y: float, angle: float) -> None:
+        tf2_broadcaster.sendTransform(TransformStamped(
+            header=rospy.Header(
+                stamp=rospy.Time.now(),
+                frame_id="map",
+            ),
+            child_frame_id=f"goal_{number}",
+            transform=Transform(
+                translation = Vector3(x, y, 0),
+                rotation = Quaternion(0, 0, math.sin(angle / 2), math.cos(angle / 2))
+            )
+        ))
+
     def game_state_callback(game_state: GameState) -> None:
         if game_state.turn == number:
             try:
@@ -42,22 +53,12 @@ def player() -> None:
                     ball_in_map.transform.translation.y - me_in_map.transform.translation.y,
                     ball_in_map.transform.translation.x - me_in_map.transform.translation.x,
                 )
-                
-                tf2_broadcaster.sendTransform(TransformStamped(
-                    header=rospy.Header(
-                        stamp=rospy.Time.now(),
-                        frame_id="map",
-                    ),
-                    child_frame_id=f"goal_{number}",
-                    transform=Transform(
-                        translation = ball_in_map.transform.translation,
-                        rotation = Quaternion(0, 0, math.sin(angle_to_ball / 2), math.cos(angle_to_ball / 2)
-                    )
-                )))
+
+                push_goal_to_tf(ball_in_map.transform.translation.x, ball_in_map.transform.translation.y, angle_to_ball)
             except (LookupException, ConnectivityException, ExtrapolationException):
-                rospy.logwarn("Ball not found")
+                rospy.logwarn_throttle(1, "Ball not found")
         else:
-            ...
+            push_goal_to_tf(0, 0, 0)
 
     game_state_sub = rospy.Subscriber("game_state", GameState, game_state_callback)
 

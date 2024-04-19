@@ -11,7 +11,8 @@ import actionlib
 def motion_planner() -> None:
     rospy.init_node("motion_planner")
 
-    cmd_vel_topic = rospy.get_param("~cmd_vel_topic", "cmd_vel")
+    number = rospy.get_param('~number', 0)
+    cmd_vel_topic = f'cmd_vel_{number}'
     cmd_vel_pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
 
     server = None

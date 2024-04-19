@@ -1,17 +1,19 @@
-#include <ros/node_handle.h>
 #include <geometry_msgs/Twist.h>
+#include <ros/node_handle.h>
 
-#include <pico/stdlib.h>
-#include <pico/multicore.h>
-#include <pico/time.h>
-#include <rc/motor/motor.h>
-#include <rc/encoder/encoder.h>
 #include <comms/common.h>
-#include <comms/protocol.h>
 #include <comms/listener.h>
+#include <comms/protocol.h>
 #include <comms/topic_data.h>
+#include <pico/multicore.h>
+#include <pico/stdlib.h>
+#include <pico/time.h>
 #include <rc/defs/common_defs.h>
+#include <rc/encoder/encoder.h>
 #include <rc/math/filter.h>
+#include <rc/motor/motor.h>
+
+#include <hockey_cup/WheelVelocities.h>
 
 //auto update(repeating_timer_t *rt) -> bool {
 //    return false;
@@ -27,7 +29,7 @@ std::array<int, 2> MOTOR_CHANNELS{LEFT_MOTOR_CHANNEL, RIGHT_MOTOR_CHANNEL};
 
 std::array<rc_filter_t, 2> motor_pids{rc_filter_empty(), rc_filter_empty()};
 
-auto twist_callback(geometry_msgs::Twist const &twist) -> void {
+auto cmd_heel_vels_callback(hockey_cup::WheelVelocities const& wheel_velocities) -> void {
     rc_filter_pid(motor_pids.data() + 0, 0, 0, 0, 0, MAIN_LOOP_PERIOD_S);
     rc_filter_pid(motor_pids.data() + 1, 0, 0, 0, 0, MAIN_LOOP_PERIOD_S);
 
@@ -39,15 +41,9 @@ auto twist_callback(geometry_msgs::Twist const &twist) -> void {
     for (std::size_t i = 0; i < encoder_velocities.size(); i++)
         encoder_velocities[i] = ENCODER_POLARITIES[i] * rc_encoder_read_delta(MOTOR_CHANNELS[i]);
 
-    auto linear_velocity = static_cast<float>(twist.linear.x);
-    auto angular_velocity = static_cast<float>(twist.angular.z);
-
-    float left_speed = linear_velocity - angular_velocity * HALF_WHEEL_BASE;
-    float right_speed = linear_velocity + angular_velocity * HALF_WHEEL_BASE;
-
     std::array<float, 2> duty_cycles{};
 
-
+    // TODO: continue...
 }
 
 auto initialize_hardware() -> void {
@@ -80,21 +76,24 @@ auto initialize_hardware() -> void {
     // Wait for other core to get rolling
     sleep_ms(500);
 
-//    // Run the main loop as a timed interrupt
-//    ROS_INFO("Starting the timed interrupt...");
-//    repeating_timer_t loop_timer;
-//    add_repeating_timer_ms(MAIN_LOOP_MS, update, nullptr, &loop_timer);
+    //    // Run the main loop as a timed interrupt
+    //    ROS_INFO("Starting the timed interrupt...");
+    //    repeating_timer_t loop_timer;
+    //    add_repeating_timer_ms(MAIN_LOOP_MS, update, nullptr, &loop_timer);
 
     ROS_INFO("Done Booting Up!");
 }
 
-auto main(int argc, char **argv) -> int {
+auto main(int argc, char** argv) -> int {
     ros::init(argc, argv, "drive_pico");
     ros::NodeHandle nh;
 
     initialize_hardware();
 
-    std::ignore = nh.subscribe("cmd_vel", 1, twist_callback);
+    std::string cmd_wheel_vels_topic;
+    nh.getParam("~cmd_wheel_vels_topic", cmd_wheel_vels_topic);
+
+    auto _ = nh.subscribe(cmd_wheel_vels_topic, 1, cmd_heel_vels_callback);
 
     ros::spin();
 

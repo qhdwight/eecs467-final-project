@@ -14,9 +14,9 @@
     <include file="$(find hockey_cup)/launch/mbot.launch">
         <arg name="number" value="0"/>
     </include>
-    <include file="$(find hockey_cup)/launch/mbot.launch">
+    <!-- <include file="$(find hockey_cup)/launch/mbot.launch">
         <arg name="number" value="1"/>
-    </include>
+    </include> -->
 
     <node if="$(arg play)" name="game" pkg="hockey_cup" type="game.py" output="screen"/>
 

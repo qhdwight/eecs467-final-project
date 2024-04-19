@@ -33,11 +33,11 @@ def motion_planner() -> None:
             #     rate.sleep()
             #     continue
 
+            # Motion planning is based off section 13.3.4 in "Modern Robotics"
+
             K1 = 0.3
             K2 = 1.4
-            K3 = 1.0
-
-            # Motion planning is based off section 13.3.4 in "Modern Robotics"
+            K3 = 1.8
 
             # Equation 13.30
             b = np.array([bot_in_map.x(), bot_in_map.y(), bot_in_map.angle()])
@@ -47,25 +47,33 @@ def motion_planner() -> None:
                 [-np.sin(g[2]), np.cos(g[2]), 0],
                 [0, 0, 1],
             ]) @ (b - g)
+            print(pe)
 
-            vd = 1
-            wd = 0
+            if abs(pe) > np.pi / 2:
+                # Controller is unstable when the angle delta is greater than a quarter turn
+                cmd_vel_pub.publish(Twist(
+                    angular=Vector3(z=np.copysign(1, pe)),
+                ))
+            else:
+                vd = 0.5
+                wd = 0
 
-            # Equation 13.31
-            v = (vd - K1 * abs(vd) * (xe + ye * np.tan(pe))) / np.cos(pe)
-            w = wd - (K2 * vd * ye + K3 * abs(vd) * np.tan(pe)) * np.cos(pe) ** 2
+                # Equation 13.31
+                v = (vd - K1 * abs(vd) * (xe + ye * np.tan(pe))) / np.cos(pe)
+                w = wd - (K2 * vd * ye + K3 * abs(vd) * np.tan(pe)) * np.cos(pe) ** 2
 
-            # v *= -1
-            # w *= -1
+                # v *= -1
+                # w *= -1
 
-            v = np.clip(v, -1, 1)
-            w = np.clip(w, -1, 1)
+                v = np.clip(v, -5, 5)
+                w = np.clip(w, -15, 15)
 
+                print(v, w)
 
-            cmd_vel_pub.publish(Twist(
-                linear=Vector3(x=v),
-                angular=Vector3(z=w),
-            ))
+                cmd_vel_pub.publish(Twist(
+                    linear=Vector3(x=v),
+                    angular=Vector3(z=w),
+                ))
 
         except (LookupException, ConnectivityException, ExtrapolationException):
             pass

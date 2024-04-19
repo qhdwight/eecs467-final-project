@@ -7,9 +7,6 @@ from hockey_cup.msg import GameState
 from tf2_ros import (
     Buffer,
     TransformListener,
-    LookupException,
-    ConnectivityException,
-    ExtrapolationException,
     TransformBroadcaster,
 )
 
@@ -55,12 +52,12 @@ def player() -> None:
                 )
 
                 push_goal_to_tf(ball_in_map.transform.translation.x, ball_in_map.transform.translation.y, angle_to_ball)
-            except (LookupException, ConnectivityException, ExtrapolationException):
-                rospy.logwarn_throttle(1, "Ball not found")
+            except:
+                rospy.logwarn_throttle(1, "Player could not find ball or self")
         else:
-            push_goal_to_tf(0, 0, 0)
+            push_goal_to_tf(-2, 2, 3.14)
 
-    game_state_sub = rospy.Subscriber("game_state", GameState, game_state_callback)
+    rospy.Subscriber("game_state", GameState, game_state_callback)
 
     rospy.spin()
 

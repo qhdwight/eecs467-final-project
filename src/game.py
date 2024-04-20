@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import rospy
+import geometry_msgs.msg
 
+from geometry_msgs.msg import TransformStamped
 from hockey_cup.msg import GameState
+
 
 from tf2_ros import (
     Buffer,
@@ -14,6 +17,11 @@ from tf2_ros import (
 
 UPDATE_RATE = 20
 SCORES = (0, 0)
+FIELD_LENGTH = 2.44
+FIELD_WIDTH = 1.22
+
+def publish_goal_pose(ball_in_map: geometry_msgs.msg.TransformStamped) -> None:
+
 
 
 def game() -> None:
@@ -26,9 +34,12 @@ def game() -> None:
 
     rate = rospy.Rate(UPDATE_RATE)
 
+    old_pose = None
+
     while not rospy.is_shutdown():
         try:
             ball_in_map = tf2_buffer.lookup_transform("map", "ball", rospy.Time(0))
+            publish_goal_pose(old_pose, ball_in_map)
         except (LookupException, ConnectivityException, ExtrapolationException):
             ball_in_map = None
 

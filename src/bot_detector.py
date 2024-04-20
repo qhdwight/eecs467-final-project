@@ -59,10 +59,9 @@ def bot_detector() -> None:
                 angle = np.linalg.norm(rvec)
                 axis = rvec / angle
 
+                # TODO(quintin): Should use the TF tree to resolve this
                 axis *= -1
-                angle += np.pi
-
-                tvec[0] *= -1
+                tvec[1] *= -1
 
                 position = np.vstack((tvec[:2], 0))
                 orientation = np.vstack((np.sin(angle / 2) * axis, np.cos(angle / 2)))

@@ -2,23 +2,22 @@
  * This file is the main executable for the MBot firmware.
  */
 
-#include <pico/stdlib.h>
-#include <pico/mutex.h>
+#include <comms/common.h>
+#include <comms/listener.h>
+#include <comms/messages_mb.h>
+#include <comms/protocol.h>
+#include <comms/topic_data.h>
 #include <pico/multicore.h>
+#include <pico/mutex.h>
+#include <pico/stdlib.h>
 #include <pico/time.h>
-#include <rc/motor/motor.h>
 #include <rc/encoder/encoder.h>
 #include <rc/motor/motor.h>
 #include <rc/mpu/mpu.h>
-#include <comms/common.h>
-#include <comms/protocol.h>
-#include <comms/listener.h>
-#include <comms/topic_data.h>
-#include <comms/messages_mb.h>
 
-#include <math.h>
-#include <inttypes.h>
 #include "mbot.h"
+#include <inttypes.h>
+#include <math.h>
 
 #define LED_PIN 25
 #define MAIN_LOOP_HZ 50.0 // 50 hz loop
@@ -35,100 +34,79 @@ uint64_t current_pico_time = 0;
 
 float enc2meters = ((2.0 * PI * WHEEL_RADIUS) / (GEAR_RATIO * ENCODER_RES));
 
-void timestamp_cb(timestamp_t *received_timestamp)
-{
+void timestamp_cb(timestamp_t* received_timestamp) {
     // if we havent set the offset yet
-    if (timestamp_offset == 0)
-    {
+    if (timestamp_offset == 0) {
         uint64_t cur_pico_time = to_us_since_boot(get_absolute_time());
         timestamp_offset = received_timestamp->utime - cur_pico_time;
     }
 }
 
-void reset_encoders_cb(mbot_encoder_t *received_encoder_vals)
-{
+void reset_encoders_cb(mbot_encoder_t* received_encoder_vals) {
     rc_encoder_write(LEFT_MOTOR_CHANNEL, received_encoder_vals->leftticks);
     rc_encoder_write(RIGHT_MOTOR_CHANNEL, received_encoder_vals->rightticks);
 }
 
-void reset_odometry_cb(odometry_t *received_odom)
-{
+void reset_odometry_cb(odometry_t* received_odom) {
     current_odom.utime = received_odom->utime;
     current_odom.x = received_odom->x;
     current_odom.y = received_odom->y;
     current_odom.theta = received_odom->theta;
 }
 
-int write_pid_coefficients(i2c_inst_t *i2c)
-{
+int write_pid_coefficients(i2c_inst_t* i2c) {
     uint8_t pid_bytes[PID_VALUES_LEN];
     memcpy(pid_bytes, &mbot_pid_gains, PID_VALUES_LEN);
     return mb_write_fram(i2c, PID_VALUES_ADDR, PID_VALUES_LEN, &pid_bytes[0]);
 }
 
-void pid_values_cb(mbot_pid_gains_t *received_pid_gains)
-{
+void pid_values_cb(mbot_pid_gains_t* received_pid_gains) {
     memcpy(&mbot_pid_gains, received_pid_gains, sizeof(mbot_pid_gains_t));
     write_pid_coefficients(i2c);
 }
 
-void register_topics()
-{
+void register_topics() {
     // timesync topic
-    comms_register_topic(MBOT_TIMESYNC, sizeof(timestamp_t), (Deserialize)&timestamp_t_deserialize, (Serialize)&timestamp_t_serialize, (MsgCb)&timestamp_cb);
+    comms_register_topic(MBOT_TIMESYNC, sizeof(timestamp_t), (Deserialize) &timestamp_t_deserialize, (Serialize) &timestamp_t_serialize, (MsgCb) &timestamp_cb);
     // odometry topic
-    comms_register_topic(ODOMETRY, sizeof(odometry_t), (Deserialize)&odometry_t_deserialize, (Serialize)&odometry_t_serialize, NULL);
+    comms_register_topic(ODOMETRY, sizeof(odometry_t), (Deserialize) &odometry_t_deserialize, (Serialize) &odometry_t_serialize, NULL);
     // reset odometry topic
-    comms_register_topic(RESET_ODOMETRY, sizeof(odometry_t), (Deserialize)&odometry_t_deserialize, (Serialize)&odometry_t_serialize, (MsgCb)&reset_odometry_cb);
+    comms_register_topic(RESET_ODOMETRY, sizeof(odometry_t), (Deserialize) &odometry_t_deserialize, (Serialize) &odometry_t_serialize, (MsgCb) &reset_odometry_cb);
     // IMU topic
-    comms_register_topic(MBOT_IMU, sizeof(mbot_imu_t), (Deserialize)&mbot_imu_t_deserialize, (Serialize)&mbot_imu_t_serialize, NULL);
+    comms_register_topic(MBOT_IMU, sizeof(mbot_imu_t), (Deserialize) &mbot_imu_t_deserialize, (Serialize) &mbot_imu_t_serialize, NULL);
     // encoders topic
-    comms_register_topic(MBOT_ENCODERS, sizeof(mbot_encoder_t), (Deserialize)&mbot_encoder_t_deserialize, (Serialize)&mbot_encoder_t_serialize, NULL);
+    comms_register_topic(MBOT_ENCODERS, sizeof(mbot_encoder_t), (Deserialize) &mbot_encoder_t_deserialize, (Serialize) &mbot_encoder_t_serialize, NULL);
     // reset encoders topic
-    comms_register_topic(RESET_ENCODERS, sizeof(mbot_encoder_t), (Deserialize)&mbot_encoder_t_deserialize, (Serialize)&mbot_encoder_t_serialize, (MsgCb)&reset_encoders_cb);
+    comms_register_topic(RESET_ENCODERS, sizeof(mbot_encoder_t), (Deserialize) &mbot_encoder_t_deserialize, (Serialize) &mbot_encoder_t_serialize, (MsgCb) &reset_encoders_cb);
     // motor commands topic
-    comms_register_topic(MBOT_MOTOR_COMMAND, sizeof(mbot_motor_command_t), (Deserialize)&mbot_motor_command_t_deserialize, (Serialize)&mbot_motor_command_t_serialize, NULL);
+    comms_register_topic(MBOT_MOTOR_COMMAND, sizeof(mbot_motor_command_t), (Deserialize) &mbot_motor_command_t_deserialize, (Serialize) &mbot_motor_command_t_serialize, NULL);
     // PID values topic
-    comms_register_topic(MBOT_PIDS, sizeof(mbot_pid_gains_t), (Deserialize)&mbot_pid_gains_t_deserialize, (Serialize)&mbot_pid_gains_t_serialize, (MsgCb)&pid_values_cb);
+    comms_register_topic(MBOT_PIDS, sizeof(mbot_pid_gains_t), (Deserialize) &mbot_pid_gains_t_deserialize, (Serialize) &mbot_pid_gains_t_serialize, (MsgCb) &pid_values_cb);
 }
 
-void read_pid_coefficients(i2c_inst_t *i2c)
-{
+void read_pid_coefficients(i2c_inst_t* i2c) {
     uint8_t pid_bytes[PID_VALUES_LEN];
 
-    if (mb_read_fram(i2c, PID_VALUES_ADDR, PID_VALUES_LEN, pid_bytes) > 0)
-    {
+    if (mb_read_fram(i2c, PID_VALUES_ADDR, PID_VALUES_LEN, pid_bytes) > 0) {
         printf("reading fram success.\n");
         memcpy(&mbot_pid_gains, pid_bytes, PID_VALUES_LEN);
         printf("read gains from fram!\r\n");
-    }
-    else
-    {
+    } else {
         printf("reading PID gains from fram failure.\n");
     }
 }
 
-float open_loop_control(int channel, float sp)
-{
-    if (channel == LEFT_MOTOR_CHANNEL)
-    {
-        if (sp > 0)
-        {
+float open_loop_control(int channel, float sp) {
+    if (channel == LEFT_MOTOR_CHANNEL) {
+        if (sp > 0) {
             return SLOPE_L * sp + INTERCEPT_L;
-        }
-        else
-        {
+        } else {
             return SLOPE_L_REVERSE * sp + INTERCEPT_L_REVERSE;
         }
-    }
-    else if (channel == RIGHT_MOTOR_CHANNEL)
-    {
-        if (sp > 0)
-        {
+    } else if (channel == RIGHT_MOTOR_CHANNEL) {
+        if (sp > 0) {
             return SLOPE_R * sp + INTERCEPT_R;
-        }
-        else
-        {
+        } else {
             return SLOPE_R_REVERSE * sp + INTERCEPT_R_REVERSE;
         }
     }
@@ -136,26 +114,21 @@ float open_loop_control(int channel, float sp)
     return 0;
 }
 
-float clamp_orientation(float theta)
-{
-    while (theta < 0)
-    {
+float clamp_orientation(float theta) {
+    while (theta < 0) {
         theta += 2 * PI;
     }
 
-    while (theta >= 2 * PI)
-    {
+    while (theta >= 2 * PI) {
         theta -= 2 * PI;
     }
 
     return theta;
 }
 
-bool timer_cb(repeating_timer_t *rt)
-{
+bool timer_cb(repeating_timer_t* rt) {
     // Read the PID values
-    if (comms_get_topic_data(MBOT_PIDS, &mbot_pid_gains))
-    {
+    if (comms_get_topic_data(MBOT_PIDS, &mbot_pid_gains)) {
         uint64_t msg_time = current_pico_time;
         // Print the PID values
         printf("Left: %f, %f, %f, %f", mbot_pid_gains.motor_a_kp,
@@ -196,8 +169,7 @@ bool timer_cb(repeating_timer_t *rt)
                       1.0 / MAIN_LOOP_HZ);
     }
     // only run if we've received a timesync message...
-    if (comms_get_topic_data(MBOT_TIMESYNC, &received_time))
-    {
+    if (comms_get_topic_data(MBOT_TIMESYNC, &received_time)) {
         uint64_t cur_pico_time = to_us_since_boot(get_absolute_time()) + timestamp_offset;
         uint64_t latency_time = cur_pico_time - current_pico_time;
         current_pico_time = cur_pico_time;
@@ -242,8 +214,7 @@ bool timer_cb(repeating_timer_t *rt)
         delta_theta = (delta_sR - delta_sL) / WHEEL_BASE; // delta_theta_odo
         float delta_GO = delta_theta_gyro - delta_theta;
 
-        if (GYRODOMETRY && abs(delta_GO) > delta_theta_thres)
-        {
+        if (GYRODOMETRY && abs(delta_GO) > delta_theta_thres) {
             delta_theta = delta_theta_gyro;
         }
 
@@ -261,18 +232,16 @@ bool timer_cb(repeating_timer_t *rt)
          *************************************************************/
 
         // get the current motor command state (if we have one)
-        if (comms_get_topic_data(MBOT_MOTOR_COMMAND, &current_cmd))
-        {           
+        if (comms_get_topic_data(MBOT_MOTOR_COMMAND, &current_cmd)) {
             // Clamp duty cycle to [-1, 1]
-            float duty = clamp_duty(current_cmd.angular_v);
+            float roller_duty = clamp_duty(current_cmd.angular_v);
+            float kicker_duty = clamp_duty(current_cmd.trans_v);
             // duty to motor command
-            int16_t roller_cmd = (int)(duty * 0.95 * pow(2, 15));            
+            int16_t roller_cmd = (int) (roller_duty * 0.95 * pow(2, 15));
+            int16_t kicker_cmd = (int) (kicker_duty * 0.95 * pow(2, 15));
             // set roller motor command
             rc_motor_set(RIGHT_MOTOR_CHANNEL, roller_cmd);
-            
-            // trigger kicker
-            gpio_put(M0_DIR_PIN, current_cmd.trans_v != 0);
-            
+            rc_motor_set(LEFT_MOTOR_CHANNEL, kicker_cmd);
         }
 
         // write the encoders to serial
@@ -287,8 +256,7 @@ bool timer_cb(repeating_timer_t *rt)
     return true;
 }
 
-int main()
-{
+int main() {
     bi_decl(bi_program_description("The main binary for the MBot Pico Board."));
     bi_decl(bi_1pin_with_name(LED_PIN, "On-board LED"));
     set_sys_clock_khz(125000, true);
@@ -304,8 +272,8 @@ int main()
 
     // Pins
     // for the i2c to the IMU
-    const uint sda_pin = 4;
-    const uint scl_pin = 5;
+    uint const sda_pin = 4;
+    uint const scl_pin = 5;
 
     // Ports
     i2c = i2c0;
@@ -421,23 +389,19 @@ int main()
                   turn_vel_pid_params.kd,
                   1.0 / turn_vel_pid_params.dFilterHz,
                   1.0 / MAIN_LOOP_HZ);
-    rc_filter_enable_saturation(&turn_vel_pid, -2/3, 2/3);
+    rc_filter_enable_saturation(&turn_vel_pid, -2 / 3, 2 / 3);
 
     /*************************************************************
      * End of TODO
      *************************************************************/
 
-    if (OPEN_LOOP)
-    {
+    if (OPEN_LOOP) {
         printf("Running in open loop mode\n");
-    }
-    else
-    {
+    } else {
         printf("Running in closed loop mode\n");
     }
 
-    while (running)
-    {
+    while (running) {
         printf("\033[2A\r|      SENSORS      |           ODOMETRY          |     SETPOINTS     |\n\r|  L_ENC  |  R_ENC  |    X    |    Y    |    θ    |   FWD   |   ANG   \n\r|%7lld  |%7lld  |%7.3f  |%7.3f  |%7.3f  |%7.3f  |%7.3f  |", current_encoders.leftticks, current_encoders.rightticks, current_odom.x, current_odom.y, current_odom.theta, current_cmd.trans_v, current_cmd.angular_v);
     }
 }
@@ -447,14 +411,10 @@ int main()
  *
  * @param duty
  */
-float clamp_duty(float duty)
-{
-    if (duty > 1.0)
-    {
+float clamp_duty(float duty) {
+    if (duty > 1.0) {
         return 1.0;
-    }
-    else if (duty < -1.0)
-    {
+    } else if (duty < -1.0) {
         return -1.0;
     }
     return duty;

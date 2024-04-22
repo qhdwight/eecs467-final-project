@@ -11,5 +11,5 @@
 
     <node name="motion_planner_$(arg number)" pkg="hockey_cup" type="motion_planner.py" output="screen">
         <param name="number" value="$(arg number)"/>
-    </node> 
+    </node>
 </launch>

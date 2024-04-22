@@ -2,3 +2,4 @@ opencv-python
 numpy
 cv_bridge
 pybullet
+roboticstoolbox-python

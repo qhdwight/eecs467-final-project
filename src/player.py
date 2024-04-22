@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 
-import rospy
+import math
 
 from hockey_cup.msg import GameState
 
+import rospy
+from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
 from tf2_ros import (
     Buffer,
     TransformListener,
     TransformBroadcaster,
 )
-
-from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
-
-import math
 
 UPDATE_RATE = 20
 
@@ -35,8 +33,8 @@ def player() -> None:
             ),
             child_frame_id=f"goal_{number}",
             transform=Transform(
-                translation = Vector3(x, y, 0),
-                rotation = Quaternion(0, 0, math.sin(angle / 2), math.cos(angle / 2))
+                translation=Vector3(x, y, 0),
+                rotation=Quaternion(0, 0, math.sin(angle / 2), math.cos(angle / 2))
             )
         ))
 
@@ -52,8 +50,8 @@ def player() -> None:
                 )
 
                 push_goal_to_tf(ball_in_map.transform.translation.x, ball_in_map.transform.translation.y, angle_to_ball)
-            except:
-                rospy.logwarn_throttle(1, "Player could not find ball or self")
+            except Exception as e:
+                rospy.logwarn_throttle(1, f"Player failed: {e}")
         else:
             push_goal_to_tf(-2, 2, 3.14)
 

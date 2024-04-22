@@ -56,7 +56,7 @@ def simulator() -> None:
     p.setAdditionalSearchPath(str(package_path / 'urdf'))
 
     mbots = [
-        MBot(0, [2, 1, 0.5], p.getQuaternionFromEuler([0, 0, 3.14])),
+        MBot(0, [2, 1, 0.5], p.getQuaternionFromEuler([0, 0, 0])),
         # MBot(1, [-1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 0])),
     ]
 

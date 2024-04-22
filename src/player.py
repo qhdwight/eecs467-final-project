@@ -5,12 +5,15 @@ import math
 from hockey_cup.msg import GameState
 
 import rospy
-from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
 from tf2_ros import (
     Buffer,
     TransformListener,
     TransformBroadcaster,
 )
+
+from manifpy import SE2
+
+from transforms import *
 
 UPDATE_RATE = 20
 
@@ -25,35 +28,32 @@ def player() -> None:
 
     tf2_broadcaster = TransformBroadcaster()
 
-    def push_goal_to_tf(x: float, y: float, angle: float) -> None:
-        tf2_broadcaster.sendTransform(TransformStamped(
-            header=rospy.Header(
-                stamp=rospy.Time.now(),
-                frame_id="map",
-            ),
-            child_frame_id=f"goal_{number}",
-            transform=Transform(
-                translation=Vector3(x, y, 0),
-                rotation=Quaternion(0, 0, math.sin(angle / 2), math.cos(angle / 2))
-            )
-        ))
+    def push_goal_to_tf(goal: SE2) -> None:
+        tf2_broadcaster.sendTransform(to_tf(goal, "map", f"goal_{number}"))
+
+    initial_pose = None
 
     def game_state_callback(game_state: GameState) -> None:
-        if game_state.turn == number:
-            try:
-                ball_in_map = tf2_buffer.lookup_transform("map", "ball", rospy.Time(0))
-                me_in_map = tf2_buffer.lookup_transform("map", f"bot_{number}", rospy.Time(0))
+        try:
+            ball_in_map = to_se2(
+                tf2_buffer.lookup_transform("map", "ball", rospy.Time(0))
+            )
+            me_in_map = to_se2(
+                tf2_buffer.lookup_transform("map", f"bot_{number}", rospy.Time(0))
+            )
 
-                angle_to_ball = math.atan2(
-                    ball_in_map.transform.translation.y - me_in_map.transform.translation.y,
-                    ball_in_map.transform.translation.x - me_in_map.transform.translation.x,
-                )
+            nonlocal initial_pose
+            if initial_pose is None:
+                initial_pose = me_in_map
 
-                push_goal_to_tf(ball_in_map.transform.translation.x, ball_in_map.transform.translation.y, angle_to_ball)
-            except Exception as e:
-                rospy.logwarn_throttle(1, f"Player failed: {e}")
-        else:
-            push_goal_to_tf(-2, 2, 3.14)
+            if game_state.turn == number:
+                angle_to_ball = math.atan2(*(ball_in_map.translation() - me_in_map.translation())[::-1])
+                push_goal_to_tf(SE2(ball_in_map.x(), ball_in_map.y(), angle_to_ball))
+            else:
+                push_goal_to_tf(initial_pose)
+
+        except Exception as e:
+            rospy.logwarn_throttle(1, f"Player failed: {e}")
 
     rospy.Subscriber("game_state", GameState, game_state_callback)
 

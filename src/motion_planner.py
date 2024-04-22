@@ -6,6 +6,8 @@ from geometry_msgs.msg import Twist
 from tf2_ros import Buffer, TransformListener
 from transforms import *
 
+from math import copysign
+
 
 def motion_planner() -> None:
     rospy.init_node("motion_planner")
@@ -21,7 +23,7 @@ def motion_planner() -> None:
         tangent = goal_in_map - bot_in_map
         tangent = tangent.coeffs()
         tangent *= [2, 12, 5]
-        tangent[2] += tangent[1]
+        tangent[2] += copysign(tangent[1], tangent[0])
         tangent[1] = 0
         tangent = np.clip(tangent, [-0.6, -0.6, -np.pi], [0.6, 0.6, np.pi])
         v, _, w = tangent

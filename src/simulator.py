@@ -12,6 +12,8 @@ from sensor_msgs.msg import Image
 from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 
+import numpy as np
+
 IMAGE_UPDATE_RATE = 10
 TF_UPDATE_RATE = 10
 IMAGE_WIDTH = 640
@@ -56,13 +58,13 @@ def simulator() -> None:
     p.setAdditionalSearchPath(str(package_path / 'urdf'))
 
     mbots = [
-        MBot(0, [-1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 0])),
-        MBot(1, [1, 0, 0.5], p.getQuaternionFromEuler([0, 0, 3.14])),
+        MBot(0, [1, 0.1, 0.5], p.getQuaternionFromEuler([0, 0, np.pi])),
+        MBot(1, [-1, -0.1, 0.5], p.getQuaternionFromEuler([0, 0, 0])),
     ]
 
-    ball = p.loadURDF("ball.urdf", [0.3, 0, 0.1])
+    ball = p.loadURDF("ball.urdf", [0.3, 0.3, 0.1])
 
-    # p.loadURDF("field.urdf", [0, 0, 0])
+    p.loadURDF("field.urdf", [0, 0, 0])
 
     # TF
 

@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-import rospy
-
-from geometry_msgs.msg import Twist, Vector3
-
-from transforms import to_se2
-
-from tf2_ros import Buffer, TransformListener, LookupException, ConnectivityException, ExtrapolationException
-
 import numpy as np
+
+from geometry_msgs.msg import Twist
+from tf2_ros import Buffer, TransformListener
+from transforms import *
+
+from math import copysign
 
 
 def motion_planner() -> None:
@@ -21,54 +19,30 @@ def motion_planner() -> None:
     cmd_vel_topic = f'cmd_vel_{number}'
     cmd_vel_pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
 
-    rate = rospy.Rate(20)
+    def control_law(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
+        tangent = goal_in_map - bot_in_map
+        tangent = tangent.coeffs()
+        tangent *= [2, 12, 5]
+        tangent[2] += copysign(tangent[1], tangent[0])
+        tangent[1] = 0
+        tangent = np.clip(tangent, [-0.6, -0.6, -np.pi], [0.6, 0.6, np.pi])
+        v, _, w = tangent
+        return Twist(
+            linear=Vector3(x=v),
+            angular=Vector3(z=w)
+        )
+
+    rate = rospy.Rate(30)
     while not rospy.is_shutdown():
         try:
             goal_in_map = to_se2(tf2_buffer.lookup_transform("map", f"goal_{number}", rospy.Time(0)))
             bot_in_map = to_se2(tf2_buffer.lookup_transform("map", f"bot_{number}", rospy.Time(0)))
 
-            # distance = np.linalg.norm([goal_in_map.x() - bot_in_map.x(), goal_in_map.y() - bot_in_map.y()])
-            # if distance < 0.1:
-            #     cmd_vel_pub.publish(Twist())
-            #     rate.sleep()
-            #     continue
+            twist = control_law(bot_in_map, goal_in_map)
+            cmd_vel_pub.publish(twist)
 
-            K1 = 0.3
-            K2 = 1.4
-            K3 = 1.0
-
-            # Motion planning is based off section 13.3.4 in "Modern Robotics"
-
-            # Equation 13.30
-            b = np.array([bot_in_map.x(), bot_in_map.y(), bot_in_map.angle()])
-            g = np.array([goal_in_map.x(), goal_in_map.y(), goal_in_map.angle()])
-            xe, ye, pe = np.array([
-                [np.cos(g[2]), np.sin(g[2]), 0],
-                [-np.sin(g[2]), np.cos(g[2]), 0],
-                [0, 0, 1],
-            ]) @ (b - g)
-
-            vd = 1
-            wd = 0
-
-            # Equation 13.31
-            v = (vd - K1 * abs(vd) * (xe + ye * np.tan(pe))) / np.cos(pe)
-            w = wd - (K2 * vd * ye + K3 * abs(vd) * np.tan(pe)) * np.cos(pe) ** 2
-
-            # v *= -1
-            # w *= -1
-
-            v = np.clip(v, -1, 1)
-            w = np.clip(w, -1, 1)
-
-
-            cmd_vel_pub.publish(Twist(
-                linear=Vector3(x=v),
-                angular=Vector3(z=w),
-            ))
-
-        except (LookupException, ConnectivityException, ExtrapolationException):
-            pass
+        except Exception as e:
+            rospy.logwarn_throttle(1, f"Motion planner error: {e}")
 
         rate.sleep()
 

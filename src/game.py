@@ -45,7 +45,7 @@ def game() -> None:
 
         if ball_in_map is None:
             turn = -1
-            rospy.logwarn_throttle(1, "Ball not found")
+            rospy.logwarn_throttle(1, "Game could not find the ball")
         elif ball_in_map.transform.translation.x > 0:
             turn = 0
         else:

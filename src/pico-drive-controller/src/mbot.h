@@ -21,11 +21,10 @@
 #define WHEEL_RADIUS 0.043
 #define GEAR_RATIO 78.0
 #define ENCODER_RES 20.0
-#define WHEEL_BASE 0.159 // wheel separation distance in meters
+#define MBOT_WHEEL_BASE 0.159 // wheel separation distance in meters
 #define MAX_FWD_VEL 0.8 // max forward speed (m/s)
 #define MESSAGE_CONFIRMATION_CHANNEL "MSG_CONFIRM"
 #define MAX_TURN_VEL 2.5 // max turning speed (rad/s)
-#define PI 3.141592653589793
 
 // TODO: Enter the polarity values for your motors and encoders
 #define LEFT_ENC_POL 1
@@ -50,26 +49,9 @@
 // TODO: Decide which controller is used, open loop = 1, PID = 0
 #define OPEN_LOOP 0
 
-// Decide whether to use gyro when calculating odometry
-#define GYRODOMETRY 0
-#define GYRO_THRESH 0.3
-double gyro_reading = 0.0;
-
 // Decide which case to use
 #define CASE_3 0
 #define CASE_4 1
-
-// data to hold current mpu state (not used)
-//static mb_mpu_data_t mpu_data;
-static i2c_inst_t *i2c;
-
-uint64_t timestep_us = 0;
-
-// data to hold calibration coefficients
-float coeffs[4];
-
-// data to hold the PID values
-static mbot_pid_gains_t mbot_pid_gains;
 
 typedef struct pid_parameters pid_parameters_t;
 struct pid_parameters
@@ -80,16 +62,13 @@ struct pid_parameters
     float dFilterHz;
 };
 
-float clamp_duty(float duty);
+// need to be packed in order to make the byte copy from numpy and C to play nicely
+typedef struct __attribute__((__packed__ )) mbot_motor_command{
+    float trans_v;
+    float angular_v;
+} mbot_motor_command_t;
 
-// data to hold the IMU results
-mbot_imu_t current_imu = {0};
-// current odometry state
-odometry_t current_odom = {0};
-// current encoder states
-mbot_encoder_t current_encoders = {0};
-// current body frame command
-mbot_motor_command_t current_cmd = {0};
+float clamp_duty(float duty);
 
 /**
  * Example filter and PID parameter initialization
@@ -147,11 +126,6 @@ pid_parameters_t pwm_right_pid_params = {
     .kd = 0.001,
     .dFilterHz = 10.0,
 };
-
-
-float clamp_duty(float duty);
-
-float clamp_angle(float angle);
 
 #endif
 

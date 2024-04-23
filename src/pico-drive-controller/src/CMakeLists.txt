@@ -11,7 +11,6 @@ target_link_libraries(mbot
   hardware_i2c
   hardware_flash
   rclib
-  comms
 )
 pico_enable_stdio_usb(mbot 1)
 pico_enable_stdio_uart(mbot 0)

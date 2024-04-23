@@ -18,5 +18,4 @@ add_compile_options(-Wall
         )
 
 add_subdirectory(rc)
-add_subdirectory(comms)
 add_subdirectory(src)

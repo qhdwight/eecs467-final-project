@@ -64,7 +64,7 @@ def simulator() -> None:
 
     ball = p.loadURDF("ball.urdf", [0.3, 0.3, 0.1])
 
-    p.loadURDF("field.urdf", [0, 0, 0])
+    # p.loadURDF("field.urdf", [0, 0, 0])
 
     # TF
 

@@ -13,6 +13,7 @@ auto main(int argc, char** argv) -> int {
     ros::NodeHandle nh;
 
     int cameraId = pnh.param<int>("camera_id", 4);
+    cv::Size frameSize{pnh.param<int>("width", 1280), pnh.param<int>("height", 720)};
 
     cv::VideoCapture cap{
             "v4l2src device=/dev/video4 "
@@ -25,6 +26,10 @@ auto main(int argc, char** argv) -> int {
     auto topic = pnh.param<std::string>("topic", "/image");
     auto pub = nh.advertise<sensor_msgs::Image>(topic, 1);
 
+    cv::Matx33d cameraMatrix{945.69568215, 0., 659.99381561, 0., 951.85384486, 365.3696245, 0., 0., 1.};
+    cv::Matx<double, 5, 1> distCoeffs{-0.52908235, 0.28727436, 0.00566978, -0.00345952, -0.02408352};
+    auto newCameraMatrix = cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, frameSize, 1.0, frameSize);
+
     ros::Rate rate{30};
     while (ros::ok()) {
         cv::Mat frame;
@@ -35,11 +40,8 @@ auto main(int argc, char** argv) -> int {
         cv::Mat bgr;
         cvtColor(frame, bgr, cv::COLOR_YUV2BGR_I420);
 
-        cv::Matx33d cameraMatrix{945.69568215, 0., 659.99381561, 0., 951.85384486, 365.3696245, 0., 0., 1.};
-        cv::Matx<double, 5, 1> distCoeffs{-0.52908235, 0.28727436, 0.00566978, -0.00345952, -0.02408352};
-
         cv::Mat bgrUndistorted;
-        undistort(bgr, bgrUndistorted, cameraMatrix, distCoeffs);
+        undistort(bgr, bgrUndistorted, cameraMatrix, distCoeffs, newCameraMatrix);
 
         sensor_msgs::Image msg;
         msg.header.stamp = ros::Time::now();

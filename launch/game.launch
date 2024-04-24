@@ -1,19 +1,21 @@
 <launch>
     <arg name="play" default="true"/>
     <arg name="simulator" default="true"/>
-    <arg name="use_ground_truth" default="false"/>
+    <arg name="ground_truth" default="false"/>
+    <arg name="zed" default="false"/>
 
     <group if="$(arg simulator)">
         <node name="simulator" pkg="hockey_cup" type="simulator.py" output="screen">
-            <param name="use_ground_truth" value="$(arg use_ground_truth)"/>
+            <param name="ground_truth" value="$(arg ground_truth)"/>
         </node>
     </group>
 
     <group unless="$(arg simulator)">
-        <node name="usb_camera" pkg="hockey_cup" type="usb_camera" output="screen"/>
+        <node if="$(arg zed)" name="zed" pkg="hockey_cup" type="zed" output="screen"/>
+        <node unless="$(arg zed)" name="usb_camera" pkg="hockey_cup" type="usb_camera" output="screen"/>
     </group>
 
-    <group unless="$(arg use_ground_truth)">
+    <group unless="$(arg ground_truth)">
         <node name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
         <node name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
     </group>

@@ -24,6 +24,7 @@ SCORES = (0, 0)
 FIELD_LENGTH = 2.44
 FIELD_WIDTH = 1.22
 LATERAL_DEFENSE_LINE = 0.75
+LAST_GOOD_Y_POSE = 0
 
 def push_goal_to_tf(x: float, y: float, angle: float, name: str) -> None:
     tf2_ros.TransformBroadcaster.sendTransform(broadcaster, TransformStamped(
@@ -41,6 +42,7 @@ def push_goal_to_tf(x: float, y: float, angle: float, name: str) -> None:
 def publish_goal_pose(tf2_buffer, ball_in_map: geometry_msgs.msg.TransformStamped) -> None:
     if ball_in_map is None:
         return
+    global LAST_GOOD_Y_POSE
 
     try:
         # past_time = rospy.Time.now() - rospy.Duration(0.5)
@@ -50,31 +52,29 @@ def publish_goal_pose(tf2_buffer, ball_in_map: geometry_msgs.msg.TransformStampe
         pose_curr = (ball_in_map.transform.translation.x, ball_in_map.transform.translation.y)
     
         # Calculate the pose of the ball along the defense line
-        print(pose_prev, pose_curr)
-        proposed_goal_pose_y = pose_curr[1] - pose_prev[1] * (LATERAL_DEFENSE_LINE - pose_prev[0]) / (pose_curr[0] - pose_prev[0]) - pose_prev[0]
-        # TODO Find appropriate angle
-        push_goal_to_tf(LATERAL_DEFENSE_LINE, proposed_goal_pose_y, 0, "defense")
-    except (LookupException, tf2_ros.ExtrapolationException) as e:
-        print("calculate proposed goal pose failed")
-        pass
+        proposed_goal_pose_y = (LATERAL_DEFENSE_LINE - pose_prev[0]) * (pose_curr[1] - pose_prev[1]) / (pose_curr[0] - pose_prev[0]) + pose_prev[1]
 
-    # Calculate proposed goal angle
-
-
+    except (LookupException, tf2_ros.ExtrapolationException):
+        rospy.loginfo("calculate proposed goal pose failed")
+        proposed_goal_pose_y = LAST_GOOD_Y_POSE
+    except(ZeroDivisionError):
+        rospy.loginfo("ball is stationary")
+        proposed_goal_pose_y = LAST_GOOD_Y_POSE
     # If the ball is outside the field, calculate the pose of the ball after an elastic collision with the wall
-    # for i in range(3):
-    #     if proposed_goal_pose_y < -FIELD_WIDTH / 2:
-    #         proposed_goal_pose_y = proposed_goal_pose_y - FIELD_WIDTH / 2
-    #     elif proposed_goal_pose_y > FIELD_WIDTH / 2:
+    for i in range(3):
+        if proposed_goal_pose_y < -FIELD_WIDTH / 2:
+            proposed_goal_pose_y = -FIELD_WIDTH - proposed_goal_pose_y
+        elif proposed_goal_pose_y > FIELD_WIDTH / 2:
+            proposed_goal_pose_y = FIELD_WIDTH - proposed_goal_pose_y
+        else:
+            LAST_GOOD_Y_POSE = proposed_goal_pose_y
+            break
+        # TODO Find appropriate angle
+    # if still out of bounds, publish the last good pose
+    if proposed_goal_pose_y < -FIELD_WIDTH / 2 or proposed_goal_pose_y > FIELD_WIDTH / 2:
+        proposed_goal_pose_y = LAST_GOOD_Y_POSE
+    push_goal_to_tf(LATERAL_DEFENSE_LINE, proposed_goal_pose_y, 0, "defense")
 
-    #     else:
-    #         break
-    #     for i in range(2):
-    #         proposed_goal_pose_y = FIELD_WIDTH / 2 if proposed_goal_pose_y > FIELD_WIDTH / 2 else -FIELD_WIDTH / 2
-    #         proposed_goal_pose_x = pose_prev[0] + (proposed_goal_pose_y - pose_prev[1]) * (pose_curr[0] - pose_prev[0]) / (pose_curr[1] - pose_prev[1])
-    #         if proposed_goal_pose_x > -FIELD_LENGTH / 2 and proposed_goal_pose_x < FIELD_LENGTH / 2:
-    #             break
-    #         proposed_goal_pose_y = pose_curr[1] - pose_prev[1] * (LATERAL_DEFENSE_LINE - pose_prev[0]) / (pose_curr[0] - pose_prev[0]) - pose_prev[0]
 
 def game() -> None:
     rospy.init_node("game")
@@ -82,6 +82,7 @@ def game() -> None:
     rate = rospy.Rate(UPDATE_RATE)
     tf2_buffer = Buffer()
     TransformListener(tf2_buffer)
+    global LATERAL_DEFENSE_LINE 
 
     while not rospy.is_shutdown():
         try:
@@ -94,9 +95,10 @@ def game() -> None:
             rospy.logwarn_throttle(1, "Game could not find the ball")
         elif ball_in_map.transform.translation.x > 0:
             turn = 0
+            LATERAL_DEFENSE_LINE = -0.75
         else:
             turn = 1
-            LATERAL_DEFENSE_LINE = -0.75
+            LATERAL_DEFENSE_LINE = 0.75
         publish_goal_pose(tf2_buffer, ball_in_map)
         game_state_pub.publish(GameState(turn, SCORES))
 

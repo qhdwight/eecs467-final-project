@@ -208,36 +208,39 @@ bool timer_cb(repeating_timer_t *rt)
 
 void comms_listener_loop(void)
 {
+    printf("Running listener loop\n");
     bool running = true;
     while(running)
     {
         // read from serial until we get first byte of header 0xAB
         char sync_byte = 0;
-        int rc = PICO_ERROR_NO_DATA;
         do 
         {
-            rc = stdio_usb_in_chars_itf(1, &sync_byte, 1);
-        } while(rc != 0xAB);
-        
+            stdio_usb_in_chars_itf(1, &sync_byte, 1);
+        } while(sync_byte != 0xAB);
+
         // Verify second byte of header is 0xCD
         stdio_usb_in_chars_itf(1, &sync_byte, 1);
         if (sync_byte != 0xCD)
         {
+            printf("Failed receiving second header byte\n");
             continue;
         }
-        
+
         // read the rest of the data
         mbot_motor_command_t motor_command;
-        rc = stdio_usb_in_chars_itf(1, (char*)(&motor_command), sizeof(motor_command));
+        stdio_usb_in_chars_itf(1, (char*)(&motor_command), sizeof(motor_command));
 
         // Read footer 0xEF
-        rc = stdio_usb_in_chars_itf(1, &sync_byte, 1);
+        stdio_usb_in_chars_itf(1, &sync_byte, 1);
         if (sync_byte != 0xEF)
         {
+            printf("Failed receiving footer\n");
             continue;
         }
 
         // Should have received good data so update motor command
+        printf("Received new motor command: v=%.03f, w=%.03f\n", motor_command.trans_v, motor_command.angular_v);
         mutex_enter_blocking(&motor_command_mutex);
         current_cmd = motor_command;
         mutex_exit(&motor_command_mutex);
@@ -328,6 +331,10 @@ int main()
     else
     {
         printf("Running in closed loop mode\n");
+    }
+
+    while (true) {
+        sleep_ms(1000);
     }
 
 }

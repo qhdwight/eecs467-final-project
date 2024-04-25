@@ -14,7 +14,7 @@ from sensor_msgs.msg import Image
 broadcaster = TransformBroadcaster()
 bridge = CvBridge()
 img_pub = rospy.Publisher("/thresh_img", Image, queue_size=1)
-MIN_THRESH = (100,110,20)
+MIN_THRESH = (100,130,30)
 MAX_THRESH = (180,255,255)
 CAMERA_FOV = 100
 CAMERA_HEIGHT = 1.2
@@ -33,38 +33,42 @@ def image_callback(data: Image) -> None:
     # apply thresholding
     thresh = cv.inRange(hsv, MIN_THRESH, MAX_THRESH)
     contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+    best_cnt = None
     if len(contours) > 0:
-        # find contours
-        max_cnt = max(contours, key=cv.contourArea)
-        if cv.contourArea(max_cnt) > 200:
-            cv.drawContours(cv_image, max_cnt, -1, (0, 255, 0), 2)
+        # find contour of ball
+        for c in contours:
+            if cv.contourArea(c) < 900 and cv.contourArea(c) > 700:
+                best_cnt = c
+                break
+        if best_cnt is None:
+            rospy.logwarn("No valid contour found")
+            img_pub.publish(bridge.cv2_to_imgmsg(cv_image))
+            return  
+        cv.drawContours(cv_image, best_cnt, -1, (0, 255, 0), 2)
 
-            # Compute center of contour
-            M = cv.moments(max_cnt)
-            pX = int(M["m10"] / M["m00"])
-            pY = int(M["m01"] / M["m00"])
-            cv.circle(cv_image, (pX, pY), 3, (255, 255, 255), -1)
+        # Compute center of contour
+        M = cv.moments(best_cnt)
+        pX = int(M["m10"] / M["m00"])
+        pY = int(M["m01"] / M["m00"])
+        cv.circle(cv_image, (pX, pY), 3, (255, 255, 255), -1)
 
-            bearing_x = (pX - cv_image.shape[1] / 2) / cv_image.shape[1] * CAMERA_FOV
-            pos_x = tan(bearing_x * pi/ 180.0) * CAMERA_HEIGHT
-            bearing_y = (cv_image.shape[0] / 2 - pY) / cv_image.shape[0] * CAMERA_FOV
-            pos_y = tan(bearing_y * pi/ 180.0) * CAMERA_HEIGHT
+        bearing_x = (pX - cv_image.shape[1] / 2) / cv_image.shape[1] * 105
+        pos_x = tan(bearing_x * pi/ 180.0) * CAMERA_HEIGHT
+        bearing_y = (cv_image.shape[0] / 2 - pY) / cv_image.shape[0] * 72
+        pos_y = tan(bearing_y * pi/ 180.0) * CAMERA_HEIGHT
 
-        # convert to map coordinates
-        # publish the circle as a transform "ball" in "map" using "broadcaster"
-            broadcaster.sendTransform(TransformStamped(
-                header=rospy.Header(
-                    stamp=rospy.Time.now(),
-                    frame_id='map',
-                ),
-                child_frame_id=f'ball_frame',
-                transform=geometry_msgs.msg.Transform(
-                    translation=geometry_msgs.msg.Vector3(pos_x, pos_y, 0),
-                    rotation=geometry_msgs.msg.Quaternion(*[0,0,0,1]),
-                ),
-            ))
-        else:
-            print("Contour area too small")
+
+        broadcaster.sendTransform(TransformStamped(
+            header=rospy.Header(
+                stamp=rospy.Time.now(),
+                frame_id='map',
+            ),
+            child_frame_id=f'ball',
+            transform=geometry_msgs.msg.Transform(
+                translation=geometry_msgs.msg.Vector3(-pos_x, -pos_y, 0),
+                rotation=geometry_msgs.msg.Quaternion(*[0,0,0,1]),
+            ),
+        ))
     else:
         print("No contours found")
     # publish img with drawn points

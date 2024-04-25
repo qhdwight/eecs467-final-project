@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV REQUIRED)
+find_package(ZED QUIET)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -138,6 +140,15 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/hockey-cup_node.cpp)
+
+add_executable(usb_camera src/usb_camera.cpp)
+target_link_libraries(usb_camera ${catkin_LIBRARIES} opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_imgcodecs)
+
+if (ZED_FOUND)
+    add_executable(zed src/zed.cpp)
+    target_link_libraries(zed ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY} ${CUDA_NPP_LIBRARIES} opencv_core opencv_imgcodecs opencv_calib3d opencv_aruco)
+    target_include_directories(zed PUBLIC ${ZED_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
+endif ()
 
 #add_subdirectory(src/mbot EXCLUDE_FROM_ALL SYSTEM)
 

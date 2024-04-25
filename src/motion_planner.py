@@ -21,10 +21,10 @@ def motion_planner() -> None:
     cmd_vel_topic = f'cmd_vel_{number}'
     cmd_vel_pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
 
-    K = 2048  # Number of trajectories to sample
-    T = 32  # Size of trajectory horizon
+    K = 256  # Number of trajectories to sample
+    T = 8  # Size of trajectory horizon
 
-    sigma = np.diag([0.3, 0.4])
+    sigma = np.diag([0.4, 3.14])
     sigma_inv = np.linalg.inv(sigma)
 
     alpha = 1
@@ -32,7 +32,6 @@ def motion_planner() -> None:
     gamma = lambda_ * (1 - alpha)
 
     commands = None
-    current_goal_in_map = None
 
     def terminal_cost(bot_in_map: SE2, goal_in_map: SE2) -> float:
         d = goal_in_map - bot_in_map
@@ -40,17 +39,20 @@ def motion_planner() -> None:
         coeffs *= [2, 2, 1]
         coeffs = np.clip(coeffs, [-1, -1, -np.pi], [1, 1, np.pi])
         return np.linalg.norm(coeffs, ord=2)
+    
+    def seed(bot_in_map: SE2, goal_in_map: SE2) -> NDArray:
+        v, _, w = (goal_in_map - bot_in_map).coeffs()
+        return np.array([v, w])
 
     def mppi(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
         nonlocal commands
 
-        if current_goal_in_map is None or not np.allclose(goal_in_map.coeffs(), current_goal_in_map.coeffs()):
+        if commands is None:
             commands = np.zeros((T, 2))
+            x = bot_in_map
             for t in range(T):
-                v, _, w = (goal_in_map - bot_in_map).coeffs()
-                commands[t] = [v, w]
-            current_goal_in_map = goal_in_map
-
+                commands[t] = seed(x, goal_in_map)
+                x = x + SE2Tangent(commands[t, 0], 0, commands[t, 1]) / 10
 
         # Sample noise to add to control input
         sample_perturbations = np.random.multivariate_normal(np.zeros(2), sigma, (K, T))
@@ -79,32 +81,35 @@ def motion_planner() -> None:
 
         w = soft_maxed / np.sum(soft_maxed)
 
-        w_epsilon = np.average(sample_perturbations, axis=0, weights=w)
+        w_epsilon = np.average(sample_perturbations  , axis=0, weights=w)
 
         commands += w_epsilon
 
         x = bot_in_map
         for t in range(T):
             x = x + SE2Tangent(commands[t, 0], 0, commands[t, 1]) / 10
-            if t % 4 == 0:
+            if t % 2 == 0:
                 broadcaster.sendTransform(to_tf(x, "map", f"bot_{number}_mppi_{t}"))
 
         v, w = commands[0]
 
+        v = np.clip(v, -0.6, 0.6)
+        w = np.clip(w, -1.5, 1.5)
+
         print(v, w)
 
         commands = np.roll(commands, -1, axis=0)
+        commands[-1] = seed(bot_in_map, goal_in_map)
 
         # return Twist(
         #     linear=Vector3(x=sample_commands[np.argmin(costs), 0, 0]),
         #     angular=Vector3(z=sample_commands[np.argmin(costs), 0, 1])
         # )
 
-        return Twist()
-        # return Twist(
-        #     linear=Vector3(x=v),
-        #     angular=Vector3(z=w)
-        # )
+        return Twist(
+            linear=Vector3(x=v),
+            angular=Vector3(z=w)
+        )
 
     # def control_law(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
     #     tangent = goal_in_map - bot_in_map

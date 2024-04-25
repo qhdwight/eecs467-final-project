@@ -121,7 +121,7 @@ def player() -> None:
                     we_have_ball = 0 < px < 0.2
                     if we_have_ball:
                         rospy.loginfo("We retrieved the ball!")
-                        rospy.sleep(0.5)
+                        rospy.sleep(1.0)
                         state = PlayerState.GOING_TO_SHOOT
                     else:
                         rospy.logwarn("Retrieval failed and we lost the ball")
@@ -136,9 +136,9 @@ def player() -> None:
                 state = PlayerState.RETRIEVING
         elif state == PlayerState.GOING_TO_SHOOT:
             if is_ball_old:
-                vx, vy, w = (goal_pose - bot_in_map).coeffs()
-                is_at_goal = abs(vx) < 0.1 and abs(vy) < 0.1 and abs(w) < 0.1
+                is_at_goal = se2_within(goal_pose, bot_in_map, 0.1, 0.1)
                 if is_at_goal:
+                    rospy.sleep(5)
                     state = PlayerState.SHOOTING
             else:
                 # px, _, _ = (ball_in_map - bot_in_map).coeffs()

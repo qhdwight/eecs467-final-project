@@ -8,7 +8,6 @@ from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 from transforms import *
 
 
-
 def motion_planner() -> None:
     rospy.init_node("motion_planner")
 

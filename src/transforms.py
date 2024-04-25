@@ -48,5 +48,6 @@ def se2_to_np(se2: SE2) -> NDArray[np.float64]:
     return np.array([se2.x(), se2.y(), se2.angle()])
 
 
-def se2_distance(a: SE2, b: SE2) -> float:
-    return np.linalg.norm((a - b).coeffs(), ord=2)
+def se2_within(se2_1: SE2, se2_2: SE2, p_t, w_t) -> bool:
+    px, py, w = (se2_1 - se2_2).coeffs()
+    return abs(px) < p_t and abs(py) < p_t and abs(w) < w_t

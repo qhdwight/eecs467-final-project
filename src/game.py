@@ -50,7 +50,11 @@ def publish_goal_pose(tf2_buffer, ball_in_map: geometry_msgs.msg.TransformStampe
         # calculate pose of ball intersected with the lateral defense line
         pose_prev = (ball_in_map_prev.transform.translation.x, ball_in_map_prev.transform.translation.y)
         pose_curr = (ball_in_map.transform.translation.x, ball_in_map.transform.translation.y)
-    
+
+        # if the ball is not moving sufficiently quickly in the x direction, just publish the last good y pose
+        if abs(pose_curr[0] - pose_prev[0]) < 0.1:
+            push_goal_to_tf(LATERAL_DEFENSE_LINE, LAST_GOOD_Y_POSE, 0, "defense")
+            return
         # Calculate the pose of the ball along the defense line
         proposed_goal_pose_y = (LATERAL_DEFENSE_LINE - pose_prev[0]) * (pose_curr[1] - pose_prev[1]) / (pose_curr[0] - pose_prev[0]) + pose_prev[1]
 

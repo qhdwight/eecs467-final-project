@@ -53,7 +53,7 @@ class MBot:
 def simulator() -> None:
     rospy.init_node('simulator')
 
-    use_ground_truth = rospy.get_param('~use_ground_truth', False)
+    use_ground_truth = rospy.get_param('~ground_truth', False)
 
     p.connect(p.GUI)
     p.setGravity(0, 0, -9.81)

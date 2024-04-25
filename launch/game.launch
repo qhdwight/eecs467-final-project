@@ -1,0 +1,35 @@
+<launch>
+    <arg name="play" default="true"/>
+    <arg name="simulator" default="true"/>
+    <arg name="ground_truth" default="false"/>
+    <arg name="zed" default="false"/>
+
+    <group if="$(arg simulator)">
+        <node name="simulator" pkg="hockey_cup" type="simulator.py" output="screen">
+            <param name="ground_truth" value="$(arg ground_truth)"/>
+        </node>
+
+        <include file="$(find hockey_cup)/launch/mbot.launch">
+            <arg name="number" value="0"/>
+            <arg name="simulator" value="$(arg simulator)"/>
+        </include>
+        <include file="$(find hockey_cup)/launch/mbot.launch">
+            <arg name="number" value="1"/>
+            <arg name="simulator" value="$(arg simulator)"/>
+        </include>
+    </group>
+
+    <group unless="$(arg simulator)">
+        <node if="$(arg zed)" name="zed" pkg="hockey_cup" type="zed" output="screen"/>
+        <node unless="$(arg zed)" name="usb_camera" pkg="hockey_cup" type="usb_camera" output="screen"/>
+    </group>
+
+    <group unless="$(arg ground_truth)">
+        <node unless="$(arg zed)" name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
+        <node name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
+    </group>
+
+    <node if="$(arg play)" name="game" pkg="hockey_cup" type="game.py" output="screen"/>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find hockey_cup)/config/rviz.rviz" output="screen"/>
+</launch>

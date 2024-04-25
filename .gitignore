@@ -1,4 +1,6 @@
 # Python
 venv/
 *.pyc
-*.pyo
+*.pyo\
+src/test_bridge
+src/test_bridge.c

@@ -19,7 +19,7 @@ UPDATE_RATE = 20
 
 
 def player() -> None:
-    rospy.init_node("game")
+    rospy.init_node("player")
 
     number = rospy.get_param("~number")
 

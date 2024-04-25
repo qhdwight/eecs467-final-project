@@ -31,7 +31,8 @@ def motion_planner() -> None:
     lambda_ = 20
     gamma = lambda_ * (1 - alpha)
 
-    commands = np.zeros((T, 2))
+    commands = None
+    current_goal_in_map = None
 
     def terminal_cost(bot_in_map: SE2, goal_in_map: SE2) -> float:
         d = goal_in_map - bot_in_map
@@ -42,6 +43,14 @@ def motion_planner() -> None:
 
     def mppi(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
         nonlocal commands
+
+        if current_goal_in_map is None or not np.allclose(goal_in_map.coeffs(), current_goal_in_map.coeffs()):
+            commands = np.zeros((T, 2))
+            for t in range(T):
+                v, _, w = (goal_in_map - bot_in_map).coeffs()
+                commands[t] = [v, w]
+            current_goal_in_map = goal_in_map
+
 
         # Sample noise to add to control input
         sample_perturbations = np.random.multivariate_normal(np.zeros(2), sigma, (K, T))
@@ -85,7 +94,6 @@ def motion_planner() -> None:
         print(v, w)
 
         commands = np.roll(commands, -1, axis=0)
-        commands[-1] = np.zeros(2)
 
         # return Twist(
         #     linear=Vector3(x=sample_commands[np.argmin(costs), 0, 0]),

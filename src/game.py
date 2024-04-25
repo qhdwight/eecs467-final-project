@@ -8,6 +8,10 @@ from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
 import tf2_ros
 from hockey_cup.msg import GameState
 
+import numpy as np
+
+from transforms import *
+
 
 from tf2_ros import (
     Buffer,
@@ -89,22 +93,28 @@ def game() -> None:
     global LATERAL_DEFENSE_LINE 
 
     while not rospy.is_shutdown():
+        BALL_LOOK_BEHIND = 0.5
         try:
             ball_in_map = tf2_buffer.lookup_transform("map", "ball_frame", rospy.Time(0))
+            ball_in_map_past = tf2_buffer.lookup_transform("map", "ball_frame", rospy.Time.now() - rospy.Duration(BALL_LOOK_BEHIND))
         except (LookupException, ConnectivityException, ExtrapolationException):
             ball_in_map = None
 
-        if ball_in_map is None:
-            turn = -1
-            rospy.logwarn_throttle(1, "Game could not find the ball")
-        elif ball_in_map.transform.translation.x > 0:
-            turn = 0
-            LATERAL_DEFENSE_LINE = -0.75
+        # if ball_in_map is None:
+        #     rospy.logwarn_throttle(1, "Game could not find the ball")
+        # elif ball_in_map.transform.translation.x > 0:
+        #     LATERAL_DEFENSE_LINE = -0.75
+        # else:
+        #     LATERAL_DEFENSE_LINE = 0.75
+
+        if ball_in_map is not None and ball_in_map_past is not None:
+            ball_speed = np.linalg.norm(to_se2(ball_in_map).translation() - to_se2(ball_in_map_past).translation()) / BALL_LOOK_BEHIND
         else:
-            turn = 1
-            LATERAL_DEFENSE_LINE = 0.75
-        publish_goal_pose(tf2_buffer, ball_in_map)
-        game_state_pub.publish(GameState(turn, SCORES))
+            ball_speed = np.nan
+
+        # publish_goal_pose(tf2_buffer, ball_in_map)
+
+        game_state_pub.publish(GameState(SCORES, ball_speed))
 
         rate.sleep()
 

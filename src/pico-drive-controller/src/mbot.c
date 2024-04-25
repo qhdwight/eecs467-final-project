@@ -212,6 +212,10 @@ bool timer_cb(repeating_timer_t *rt)
     return true;
 }
 
+int joy_to_motor_cmd(float joy_cmd) {
+    return (int)(joy_cmd * pow(2, 15) - 1);
+}
+
 void comms_listener_loop(void)
 {
     printf("Running listener loop\n");
@@ -227,15 +231,28 @@ void comms_listener_loop(void)
 
         // Verify second byte of header is 0xCD
         stdio_usb_in_chars_itf(1, &sync_byte, 1);
-        if (sync_byte != 0xCD)
+        bool is_twist;
+        if (sync_byte == 0xCD)
         {
+            is_twist = true;
+        }
+        else if (sync_byte == 0x89) {
+            is_twist = false;
+        }
+        else {
             printf("Failed receiving second header byte\n");
             continue;
         }
 
         // read the rest of the data
         mbot_motor_command_t motor_command;
-        stdio_usb_in_chars_itf(1, (char*)(&motor_command), sizeof(motor_command));
+        mbot_joystick_command_t joystick_command;
+        if (is_twist) {
+            stdio_usb_in_chars_itf(1, (char*)(&motor_command), sizeof(motor_command));
+        }
+        else {
+            stdio_usb_in_chars_itf(1, (char*)(&joystick_command), sizeof(joystick_command));
+        }
 
         // Read footer 0xEF
         stdio_usb_in_chars_itf(1, &sync_byte, 1);
@@ -245,11 +262,17 @@ void comms_listener_loop(void)
             continue;
         }
 
-        // Should have received good data so update motor command
-        printf("Received new motor command: v=%.03f, w=%.03f\n", motor_command.trans_v, motor_command.angular_v);
-        mutex_enter_blocking(&motor_command_mutex);
-        current_cmd = motor_command;
-        mutex_exit(&motor_command_mutex);
+        if (is_twist) {
+            // Should have received good data so update motor command
+            printf("Received new motor command: v=%.03f, w=%.03f\n", motor_command.trans_v, motor_command.angular_v);
+            mutex_enter_blocking(&motor_command_mutex);
+            current_cmd = motor_command;
+            mutex_exit(&motor_command_mutex);
+        }
+        else {
+            rc_motor_set(LEFT_MOTOR_CHANNEL, joy_to_motor_cmd(joystick_command.left_motor));
+            rc_motor_set(RIGHT_MOTOR_CHANNEL, joy_to_motor_cmd(joystick_command.right_motor));
+        }
 
         sleep_us(1); // brief sleep to allow FIFO to flush
     }

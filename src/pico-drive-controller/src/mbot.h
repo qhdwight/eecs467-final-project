@@ -61,6 +61,10 @@ typedef struct __attribute__((__packed__ )) mbot_motor_command{
     float trans_v;
     float angular_v;
 } mbot_motor_command_t;
+typedef struct __attribute__((__packed__ )) mbot_joystick_command{
+    float left_motor; // -1 to +1
+    float right_motor; // -1 to +1
+} mbot_joystick_command_t;
 
 float clamp_duty(float duty);
 

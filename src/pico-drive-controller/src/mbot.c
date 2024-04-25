@@ -22,6 +22,12 @@
 #define LEFT_MOTOR_CHANNEL 1
 #define RIGHT_MOTOR_CHANNEL 3
 
+// Motor and encoder polarities
+static const int32_t LEFT_ENC_POL = 1;
+static const int32_t RIGHT_ENC_POL = -1;
+static int32_t LEFT_MOTOR_POL = 1;
+static int32_t RIGHT_MOTOR_POL = 1;
+
 // current body frame command
 mbot_motor_command_t current_cmd = {0};
 mutex_t motor_command_mutex;
@@ -275,6 +281,25 @@ int main()
 
     // wait for other core to get rolling
     sleep_ms(500);
+
+    // calibrate motor polarities
+    // left:
+    int pwm = (int)(0.5 * pow(2, 15));
+    rc_motor_set(LEFT_MOTOR_CHANNEL, pwm);
+    sleep_ms(500);
+    int delta = LEFT_ENC_POL * rc_encoder_read_delta(LEFT_MOTOR_CHANNEL);
+    LEFT_MOTOR_POL = delta < 0 ? -1 : 1;
+    rc_motor_set(LEFT_MOTOR_CHANNEL, 0);
+
+    // right:
+    rc_motor_set(RIGHT_MOTOR_CHANNEL, pwm);
+    rc_motor_set(RIGHT_MOTOR_CHANNEL, pwm);
+    sleep_ms(500);
+    delta = RIGHT_ENC_POL * rc_encoder_read_delta(RIGHT_MOTOR_CHANNEL);
+    RIGHT_MOTOR_POL = delta < 0 ? -1 : 1;
+    rc_motor_set(RIGHT_MOTOR_CHANNEL, 0);
+
+    printf("Left motor polarity: %d, right motor polarity: %d\n", LEFT_MOTOR_POL, RIGHT_MOTOR_POL);
 
     // run the main loop as a timed interrupt
     printf("starting the timed interrupt...\r\n");

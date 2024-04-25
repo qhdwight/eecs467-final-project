@@ -22,10 +22,11 @@ def motion_planner() -> None:
     def control_law(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
         tangent = goal_in_map - bot_in_map
         tangent = tangent.coeffs()
-        tangent *= [2, 12, 5]
-        tangent[2] += copysign(tangent[1], tangent[0])
+        tangent *= [2, 12, 4]
+        # tangent[2] += copysign(tangent[1], tangent[0])
         tangent[1] = 0
-        tangent = np.clip(tangent, [-0.6, -0.6, -np.pi], [0.6, 0.6, np.pi])
+        # tangent = np.clip(tangent, [-0.6, -0.6, -np.pi], [0.6, 0.6, np.pi])
+        tangent = np.clip(tangent, [-0.25, -0.25, -1.6], [0.4, 0.4, 1.6])
         v, _, w = tangent
         return Twist(
             linear=Vector3(x=v),

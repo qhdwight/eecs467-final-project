@@ -149,7 +149,7 @@ endif ()
 
 if (ZED_FOUND AND OpenCV_FOUND)
     add_executable(zed src/zed.cpp)
-    target_link_libraries(zed ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY} ${CUDA_NPP_LIBRARIES} opencv_core opencv_imgcodecs)
+    target_link_libraries(zed ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY} ${CUDA_NPP_LIBRARIES} opencv_core opencv_imgcodecs opencv_calib3d opencv_aruco)
     target_include_directories(zed PUBLIC ${ZED_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
 endif ()
 

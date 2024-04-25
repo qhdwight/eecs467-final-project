@@ -10,7 +10,7 @@ import rospy
 from hockey_cup.msg import WheelVelocities
 from sensor_msgs.msg import Image
 from tf2_ros import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, Twist
 
 import numpy as np
 
@@ -41,6 +41,14 @@ class MBot:
 
         rospy.Subscriber(f'cmd_wheel_vels_{self.number}', WheelVelocities, lambda m: self.cmd_wheel_vels_callback(m))
 
+# class Ball:
+#     def cmd_ball_vel_callback(self, message: Twist) -> None:
+#         p.setJointMotorControl2(self.urdf, self.joint_name_to_id['base_to_ball'], 
+#                                 p.VELOCITY_CONTROL, targetVelocity=message.linear.x)
+
+#     def __init__(self, position, orientation):
+#         self.urdf = p.loadURDF("ball.urdf", position, orientation)
+#         rospy.Subscriber('cmd_ball_vel', Twist, self.cmd_ball_vel_callback())
 
 def simulator() -> None:
     rospy.init_node('simulator')

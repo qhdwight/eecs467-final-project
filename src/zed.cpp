@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
 
     auto topic = pnh.param<std::string>("topic", "/image");
     auto pub = nh.advertise<sensor_msgs::Image>(topic, 1);
+    auto debugPub = nh.advertise<sensor_msgs::Image>(topic + "_aruco_detections", 1);
 
     tf2_ros::TransformBroadcaster broadcaster;
 
@@ -50,7 +51,6 @@ int main(int argc, char** argv) {
             std::vector<std::vector<cv::Point2f>> arucoCorners;
             std::vector<int> arucoIds;
             cv::aruco::detectMarkers(bgr, arucoDictionary, arucoCorners, arucoIds, arucoParams);
-            cv::aruco::drawDetectedMarkers(bgr, arucoCorners, arucoIds);
 
             for (std::size_t i = 0; i < arucoIds.size(); ++i) {
                 float sideLength = 0.09f;
@@ -64,11 +64,10 @@ int main(int argc, char** argv) {
                         cameraParams.fx, 0, cameraParams.cx,
                         0, cameraParams.fy, cameraParams.cy,
                         0, 0, 1};
-                cv::Matx<double, 5, 1> distCoeffs{cameraParams.disto[0], cameraParams.disto[1], cameraParams.disto[2], cameraParams.disto[3], cameraParams.disto[4]};
 
                 cv::Vec3f rvec;
                 cv::Vec3f tvec;
-                cv::solvePnP(objectPoints, arucoCorners[i], cameraMatrix, distCoeffs, rvec, tvec);
+                cv::solvePnP(objectPoints, arucoCorners[i], cameraMatrix, cv::noArray(), rvec, tvec);
 
                 float angle = cv::norm(rvec);
                 cv::Vec3f axis = rvec / angle;
@@ -98,6 +97,19 @@ int main(int argc, char** argv) {
             msg.step = bgr.step;
             msg.data = {bgr.data, bgr.data + bgr.total() * bgr.elemSize()};
             pub.publish(msg);
+
+            if (debugPub.getNumSubscribers()) {
+                cv::aruco::drawDetectedMarkers(bgr, arucoCorners, arucoIds);
+                sensor_msgs::Image debugMsg;
+                debugMsg.header.stamp = ros::Time::now();
+                debugMsg.height = bgr.rows;
+                debugMsg.width = bgr.cols;
+                debugMsg.encoding = "bgr8";
+                debugMsg.is_bigendian = false;
+                debugMsg.step = bgr.step;
+                debugMsg.data = {bgr.data, bgr.data + bgr.total() * bgr.elemSize()};
+                debugPub.publish(debugMsg);
+            }
 
         } else {
             throw std::runtime_error{"Failed to grab frame"};

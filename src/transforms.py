@@ -46,3 +46,7 @@ def angle_to(from_se2: SE2, to_se2: SE2) -> float:
 
 def se2_to_np(se2: SE2) -> NDArray[np.float64]:
     return np.array([se2.x(), se2.y(), se2.angle()])
+
+
+def se2_distance(a: SE2, b: SE2) -> float:
+    return np.linalg.norm((a - b).coeffs(), ord=2)

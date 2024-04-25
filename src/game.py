@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import rospy
 from hockey_cup.msg import GameState
 from tf2_ros import (
     Buffer,
@@ -22,7 +22,9 @@ def game() -> None:
     tf2_buffer = Buffer()
     TransformListener(tf2_buffer)
 
-    scores = (0, 0)
+    scores = [0] * 2
+
+    scoring_on_cooldown = False
 
     rate = rospy.Rate(UPDATE_RATE)
     while not rospy.is_shutdown():
@@ -36,6 +38,7 @@ def game() -> None:
         except:
             ball_in_map = None
             ball_in_map_past = None
+            rospy.logwarn_throttle(1, "Ball not detected. Going too fast?")
 
         if ball_in_map is not None and ball_in_map_past is not None:
             delta = to_se2(ball_in_map).translation() - to_se2(ball_in_map_past).translation()
@@ -46,10 +49,22 @@ def game() -> None:
         # Scoring computation
 
         if ball_in_map is not None and ball_in_map_past is not None:
-            if ball_in_map.transform.translation.x < -FIELD_LENGTH / 2 + 0.1 and ball_in_map_past.transform.translation.x >= -FIELD_LENGTH / 2 + 0.1:
-                scores[1] += 1
-            if ball_in_map.transform.translation.x > FIELD_LENGTH / 2 - 0.1 and ball_in_map_past.transform.translation.x <= FIELD_LENGTH / 2 - 0.1:
-                scores[0] += 1
+            if not scoring_on_cooldown:
+                def timer_cb(_):
+                    nonlocal scoring_on_cooldown
+                    scoring_on_cooldown = False
+
+                BUFFER = 0.05
+
+                x, px = ball_in_map.transform.translation.x, ball_in_map_past.transform.translation.x
+                if x < -FIELD_LENGTH / 2 + BUFFER <= px:
+                    scores[1] += 1
+                    scoring_on_cooldown = True
+                    rospy.Timer(rospy.Duration(2), timer_cb, oneshot=True)
+                if x > FIELD_LENGTH / 2 - BUFFER >= px:
+                    scores[0] += 1
+                    scoring_on_cooldown = True
+                    rospy.Timer(rospy.Duration(2), timer_cb, oneshot=True)
 
         game_state_pub.publish(GameState(tuple(scores), ball_speed))
 

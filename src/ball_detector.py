@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 
-import rospy
-import cv2 as cv
-from cv_bridge import CvBridge
-import numpy as np
-import geometry_msgs.msg
 from math import tan, pi
 
-from tf2_ros import TransformBroadcaster, TransformListener
+import cv2 as cv
+import geometry_msgs.msg
+import rospy
+from cv_bridge import CvBridge
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import Image
+from tf2_ros import TransformBroadcaster
 
 broadcaster = TransformBroadcaster()
 bridge = CvBridge()
 img_pub = rospy.Publisher("/thresh_img", Image, queue_size=1)
-MIN_THRESH = (100,130,30)
-MAX_THRESH = (180,255,255)
-CAMERA_FOV = 100
-CAMERA_HEIGHT = 1.2
+MIN_THRESH = (100, 130, 20)
+MAX_THRESH = (180, 255, 200)
+CAMERA_FOV_X = 82
+CAMERA_FOV_Y = 52
+CAMERA_HEIGHT = 1.4
+
 
 def image_callback(data: Image) -> None:
     # convert to opencv using cv_bridge
@@ -37,13 +38,13 @@ def image_callback(data: Image) -> None:
     if len(contours) > 0:
         # find contour of ball
         for c in contours:
-            if cv.contourArea(c) < 900 and cv.contourArea(c) > 700:
+            if 1000 > cv.contourArea(c) > 500:
                 best_cnt = c
                 break
         if best_cnt is None:
-            rospy.logwarn("No valid contour found")
+            rospy.logwarn_throttle(1, "No valid contour found")
             img_pub.publish(bridge.cv2_to_imgmsg(cv_image))
-            return  
+            return
         cv.drawContours(cv_image, best_cnt, -1, (0, 255, 0), 2)
 
         # Compute center of contour
@@ -52,11 +53,10 @@ def image_callback(data: Image) -> None:
         pY = int(M["m01"] / M["m00"])
         cv.circle(cv_image, (pX, pY), 3, (255, 255, 255), -1)
 
-        bearing_x = (pX - cv_image.shape[1] / 2) / cv_image.shape[1] * 105
-        pos_x = tan(bearing_x * pi/ 180.0) * CAMERA_HEIGHT
-        bearing_y = (cv_image.shape[0] / 2 - pY) / cv_image.shape[0] * 72
-        pos_y = tan(bearing_y * pi/ 180.0) * CAMERA_HEIGHT
-
+        bearing_x = (pX - cv_image.shape[1] / 2) / cv_image.shape[1] * CAMERA_FOV_X
+        pos_x = tan(bearing_x * pi / 180.0) * CAMERA_HEIGHT
+        bearing_y = (cv_image.shape[0] / 2 - pY) / cv_image.shape[0] * CAMERA_FOV_Y
+        pos_y = tan(bearing_y * pi / 180.0) * CAMERA_HEIGHT
 
         broadcaster.sendTransform(TransformStamped(
             header=rospy.Header(
@@ -66,11 +66,11 @@ def image_callback(data: Image) -> None:
             child_frame_id=f'ball',
             transform=geometry_msgs.msg.Transform(
                 translation=geometry_msgs.msg.Vector3(-pos_x, -pos_y, 0),
-                rotation=geometry_msgs.msg.Quaternion(*[0,0,0,1]),
+                rotation=geometry_msgs.msg.Quaternion(*[0, 0, 0, 1]),
             ),
         ))
     else:
-        print("No contours found")
+        rospy.logwarn_throttle(1, "No contours found")
     # publish img with drawn points
     img_msg = bridge.cv2_to_imgmsg(cv_image)
     img_pub.publish(img_msg)

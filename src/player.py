@@ -118,7 +118,7 @@ def player() -> None:
                 # Some bot has the ball (OR pathological case it is covered)
                 if ball_in_map is not None:
                     px, _, _ = (ball_in_map - bot_in_map).coeffs()
-                    we_have_ball = 0 < px < 0.2
+                    we_have_ball = 0 < px < 0.1
                     if we_have_ball:
                         rospy.loginfo("We retrieved the ball!")
                         rospy.sleep(1.0)
@@ -141,13 +141,13 @@ def player() -> None:
                     rospy.sleep(5)
                     state = PlayerState.SHOOTING
             else:
-                # px, _, _ = (ball_in_map - bot_in_map).coeffs()
-                # if px > 0.2 or px < 0:
-                rospy.logwarn("Ball popped out while going to shoot")
-                if is_ball_on_our_side:
-                    state = PlayerState.RETRIEVING
-                else:
-                    state = PlayerState.BLOCKING
+                px, _, _ = (ball_in_map - bot_in_map).coeffs()
+                if px > 0.1 or px < 0:
+                    rospy.logwarn("Ball popped out while going to shoot")
+                    if is_ball_on_our_side:
+                        state = PlayerState.RETRIEVING
+                    else:
+                        state = PlayerState.BLOCKING
         elif state == PlayerState.SHOOTING:
             if ball_in_map is not None:
                 state = PlayerState.BLOCKING

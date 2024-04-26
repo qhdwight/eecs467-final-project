@@ -41,11 +41,6 @@ def motion_planner() -> None:
         MAX_LINEAR = 0.3
 
         vx, vy, w = (goal_in_map - bot_in_map).coeffs()
-        if abs(vy) < 0.1:
-            return Twist(
-                linear=Vector3(x=np.clip(vx * 2, -MAX_LINEAR, MAX_LINEAR)),
-                angular=Vector3(z=np.clip(w * 2, -MAX_ANGULAR, MAX_ANGULAR)),
-            )
 
         dp = np.linalg.norm(bot_to_goal)
         if dp < 0.07:
@@ -59,17 +54,17 @@ def motion_planner() -> None:
         else:
             to_goal_pose = SE2(goal_in_map.x(), goal_in_map.y(), np.arctan2(bot_to_goal[1], bot_to_goal[0]))
             vx, vy, w = (to_goal_pose - bot_in_map).coeffs()
-            if abs(w) > 0.4:
-                # Rotate towards the goal
-                return Twist(
-                    angular=Vector3(z=np.clip(w * 4, -MAX_ANGULAR, MAX_ANGULAR))
-                )
-            else:
-                # Straight line with minor angular correction
-                return Twist(
-                    linear=Vector3(x=np.clip(vx * 2, -MAX_LINEAR, MAX_LINEAR)),
-                    angular=Vector3(z=np.clip(w * 2, -MAX_ANGULAR, MAX_ANGULAR)),
-                )
+            # if abs(w) > 0.4:
+            #     # Rotate towards the goal
+            #     return Twist(
+            #         angular=Vector3(z=np.clip(w * 4, -MAX_ANGULAR, MAX_ANGULAR))
+            #     )
+            # else:
+            # Straight line with minor angular correction
+            return Twist(
+                linear=Vector3(x=np.clip(vx, -MAX_LINEAR, MAX_LINEAR)),
+                angular=Vector3(z=np.clip(w * 4, -MAX_ANGULAR, MAX_ANGULAR)),
+            )
 
     prev_goal_in_map = None
     trajectory = None

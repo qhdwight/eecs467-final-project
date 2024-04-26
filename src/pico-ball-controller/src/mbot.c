@@ -21,6 +21,9 @@
 
 #define SHOOTER_MOTOR_POL -1
 
+//#define SHOOT_ROLLER_TIME_MS 100 // Bot 0
+#define SHOOT_ROLLER_TIME_MS 110 // Bot 1
+
 #define ROLLER_MOTOR_CHANNEL 3
 #define SOLENOID_CHANNEL 1
 
@@ -65,7 +68,7 @@ void comms_listener_loop(void)
             // Perform shoot ball sequence
             int32_t top_roller_duty = -pow(2, 15);
             rc_motor_set(ROLLER_MOTOR_CHANNEL, top_roller_duty * SHOOTER_MOTOR_POL);
-            sleep_ms(100);
+            sleep_ms(SHOOT_ROLLER_TIME_MS);
             rc_motor_set(SOLENOID_CHANNEL, pow(2, 15) - 1);
             sleep_ms(200);
             rc_motor_set(ROLLER_MOTOR_CHANNEL, 0);

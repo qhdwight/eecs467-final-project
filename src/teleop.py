@@ -14,6 +14,9 @@ R_UP_THRESHOLD = -259
 MAX_LIMIT = np.power(2, 15) - 1
 MIN_LIMIT = -np.power(2, 15) + 1
 
+latest_left = 0
+latest_right = 0
+
 rospy.init_node("teleop")
 number = rospy.get_param("~number", 0)
 cmd_joy_drive_topic = f"cmd_joy_drive_{number}"

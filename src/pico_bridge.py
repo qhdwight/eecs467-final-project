@@ -26,21 +26,40 @@ def get_highest_dev(prefix: str):
 def pico_bridge() -> None:
     rospy.init_node("pico_bridge")
     number = rospy.get_param("~number", 0)
-    drive_ser = serial.Serial(get_highest_dev('pico_drive'), 115200)
-    ball_ser = serial.Serial(get_highest_dev('pico_ball'), 115200)
-    rospy.loginfo(drive_ser)
-    rospy.loginfo(ball_ser)
+    drive_ser = None
+    ball_ser = None
 
     def send_motor_cmd(linear_vel, angular_vel):
-        drive_ser.write(struct.pack('<BBffB', 0xAB, 0xCD, linear_vel, angular_vel, 0xEF))
+        nonlocal drive_ser
+        try:
+            if drive_ser is None:
+                drive_ser = serial.Serial(get_highest_dev('pico_drive'), 115200)
+                rospy.loginfo(drive_ser)
+            drive_ser.write(struct.pack('<BBffB', 0xAB, 0xCD, linear_vel, angular_vel, 0xEF))
+        except:
+            drive_ser = None
         rospy.loginfo("sending drive cmd")
 
     def send_drive_joy_cmd(left, right):
-        drive_ser.write(struct.pack('<BBffB', 0xAB, 0x89, left, right, 0xEF))
+        nonlocal drive_ser
+        try:
+            if drive_ser is None:
+                drive_ser = serial.Serial(get_highest_dev('pico_drive'), 115200)
+                rospy.loginfo(drive_ser)
+            drive_ser.write(struct.pack('<BBffB', 0xAB, 0x89, left, right, 0xEF))
+        except:
+            drive_ser = None
         rospy.loginfo("sending joystick drive cmd")
 
     def send_ball_cmd(intake_cmd, shoot_cmd):
-        ball_ser.write(struct.pack('<BBfBB', 0xAB, 0xCD, intake_cmd, shoot_cmd, 0xEF))
+        nonlocal ball_ser
+        try:
+            if ball_ser is None:
+                ball_ser = serial.Serial(get_highest_dev('pico_ball'), 115200)
+                rospy.loginfo(ball_ser)
+            ball_ser.write(struct.pack('<BBfBB', 0xAB, 0xCD, intake_cmd, shoot_cmd, 0xEF))
+        except:
+            ball_ser = None
         rospy.loginfo('sending ball cmd')
 
     def timer_cb(_):

@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 
 from manifpy import SE2Tangent
 
-from geometry_msgs.msg import Twist
 from hockey_cup.msg import BallControl
 from hockey_cup.msg import GameState
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
@@ -61,8 +60,6 @@ def player() -> None:
     global LATERAL_DEFENSE_LINE
     lateral_defense_line = LATERAL_DEFENSE_LINE if bot_number == 0 else -LATERAL_DEFENSE_LINE
     last_good_y_pose = 0
-
-    current_twist = Twist()
 
     time_at_goal_ticks = 0
 
@@ -151,36 +148,24 @@ def player() -> None:
         elif state == PlayerState.RETRIEVING:
             angle_to_ball = math.atan2(*(ball_in_map.translation() - bot_in_map.translation())[::-1])
             goal_pose = SE2(ball_in_map.x(), ball_in_map.y(), angle_to_ball)
-            # if is_transition:
             ball_control_pub.publish(BallControl(1, 0))
         elif state == PlayerState.GOING_TO_SHOOT:
             if is_transition:
-                goal_pose = SE2(bot_in_map.x(), bot_in_map.y(), np.pi) + SE2Tangent(
+                goal_pose = SE2(bot_in_map.x(), bot_in_map.y(), np.pi if bot_number == 0 else 0) + SE2Tangent(
                     0, 0,
                     np.random.uniform(-TAU / 8, TAU / 8),
                 )
-            # if current_twist.linear.x > 0:
-            #     ball_control_pub.publish(BallControl(0, 0))
-            # else:
             ball_control_pub.publish(BallControl(1, 0))
         elif state == PlayerState.SHOOTING:
             if is_transition:
                 ball_control_pub.publish(BallControl(0, 1))
                 rospy.sleep(1)
 
-        # if is_transition and prev_state == PlayerState.GOING_TO_SHOOT:
-        #     ball_control_pub.publish(BallControl(0, 0))
-
         push_goal_to_tf(goal_pose)
 
         prev_state = state
 
-    def twist_callback(twist: Twist) -> None:
-        nonlocal current_twist
-        current_twist = twist
-
     rospy.Subscriber("game_state", GameState, game_state_callback)
-    rospy.Subscriber(f"cmd_vel_{bot_number}", Twist, twist_callback)
 
     rospy.spin()
 

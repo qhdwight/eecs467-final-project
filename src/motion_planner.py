@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import time
-
 from geometry_msgs.msg import Twist
 from roboticstoolbox import ReedsSheppPlanner
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster

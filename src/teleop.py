@@ -3,8 +3,7 @@
 from pyPS4Controller.controller import Controller
 import numpy as np
 import rospy
-from hockey_cup.msg import WheelVelocities
-from hockey_cup.msg import BallControl
+from hockey_cup.msg import WheelVelocities, BallControl
 
 L_DOWN_THRESHOLD = 2580
 L_UP_THRESHOLD = -259
@@ -39,20 +38,25 @@ class MyController(Controller):
 
     def __init__(self, **kwargs):
         Controller.__init__(self, **kwargs)
+        self.latest_left = 0
+        self.latest_right = 0
 
     def on_L3_up(self, val):
         cmd = 0 if val > L_UP_THRESHOLD else (val - L_UP_THRESHOLD) / (MIN_LIMIT - L_UP_THRESHOLD)
-        send_drive_cmd(cmd, latest_right)
+        send_drive_cmd(cmd, self.latest_right)
+        self.latest_left = cmd
     def on_L3_down(self, val):
         cmd = 0 if val < L_DOWN_THRESHOLD else -(val - L_DOWN_THRESHOLD) / (MAX_LIMIT - L_DOWN_THRESHOLD)
-        send_drive_cmd(cmd, latest_right)
-    
+        send_drive_cmd(cmd, self.latest_right)
+        self.latest_left = cmd
     def on_R3_up(self, val):
         cmd = 0 if val > R_UP_THRESHOLD else (val - R_UP_THRESHOLD) / (MIN_LIMIT - R_UP_THRESHOLD)
-        send_drive_cmd(latest_left, cmd)
+        send_drive_cmd(self.latest_left, cmd)
+        self.latest_right = cmd
     def on_R3_down(self, val):
         cmd = 0 if val < R_DOWN_THRESHOLD else -(val - R_DOWN_THRESHOLD) / (MAX_LIMIT - R_DOWN_THRESHOLD)
-        send_drive_cmd(latest_left, cmd)
+        send_drive_cmd(self.latest_left, cmd)
+        self.latest_right = cmd
 
     def on_L2_release(self):
         send_ball_cmd(0, 0)

@@ -14,7 +14,7 @@ MOTOR_CMD_TIMEOUT = 1
 def pico_bridge() -> None:
     rospy.init_node("pico_bridge")
     number = rospy.get_param("~number", 0)
-    drive_ser = serial.Serial('/dev/ttyACM2', 115200)
+    drive_ser = serial.Serial('/dev/ttyACM1', 115200)
     ball_ser = serial.Serial('/dev/ttyACM3', 115200)
     print(drive_ser)
     print(ball_ser)
@@ -33,7 +33,7 @@ def pico_bridge() -> None:
         send_motor_cmd(0, 0)
         print("Timed out, stopping bot")
 
-    timer = rospy.Timer(rospy.Duration(MOTOR_CMD_TIMEOUT), timer_cb)
+    timer = rospy.Timer(rospy.Duration(MOTOR_CMD_TIMEOUT), timer_cb, oneshot=True)
 
     def twist_callback(message: Twist) -> None:
         # Forward cmd to pico over serial
@@ -44,7 +44,7 @@ def pico_bridge() -> None:
         # Reset timer
         nonlocal timer
         timer.shutdown()
-        timer = rospy.Timer(rospy.Duration(MOTOR_CMD_TIMEOUT), timer_cb)
+        timer = rospy.Timer(rospy.Duration(MOTOR_CMD_TIMEOUT), timer_cb, oneshot=True)
     
     def ball_callback(message: BallControl) -> None:
         # Forward cmd to pico over serial
@@ -52,11 +52,14 @@ def pico_bridge() -> None:
         shoot_cmd = message.shoot_ball
         send_ball_cmd(intake_cmd, shoot_cmd)
 
+    def drive_joy_callback(message: WheelVelocities) -> None:
+        send_drive_joy_cmd(message.left, message.right)
+
     cmd_vel_topic = f"cmd_vel_{number}"
     cmd_joy_drive_topic = f"cmd_joy_drive_{number}"
     cmd_ball_topic = f"cmd_ball_{number}"
     rospy.Subscriber(cmd_vel_topic, Twist, twist_callback)
-    rospy.Subscriber(cmd_joy_drive_topic, WheelVelocities, send_drive_joy_cmd)
+    rospy.Subscriber(cmd_joy_drive_topic, WheelVelocities, drive_joy_callback)
     rospy.Subscriber(cmd_ball_topic, BallControl, ball_callback)
     rospy.spin()
 

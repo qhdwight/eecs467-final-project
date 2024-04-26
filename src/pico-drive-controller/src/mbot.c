@@ -44,6 +44,9 @@ float right_pwm = 0;
 float left_error;
 float right_error;
 
+static bool joystick_mode = false;
+static mutex_t joystick_mode_mutex;
+
 float l_vel_to_duty(float vel) {
     if (vel > BOUND_L_N && vel < BOUND_L_P) {
         return 0;
@@ -206,8 +209,14 @@ bool timer_cb(repeating_timer_t *rt)
     r_cmd = RIGHT_MOTOR_POL * (int)(r_duty * 0.95 * pow(2, 15));
 
     // set left and right motor command
-    rc_motor_set(LEFT_MOTOR_CHANNEL, l_cmd);
-    rc_motor_set(RIGHT_MOTOR_CHANNEL, r_cmd);
+    bool set_motors;
+    mutex_enter_blocking(&joystick_mode_mutex);
+    set_motors = !joystick_mode;
+    mutex_exit(&joystick_mode_mutex);
+    if (set_motors) {
+        rc_motor_set(LEFT_MOTOR_CHANNEL, l_cmd);
+        rc_motor_set(RIGHT_MOTOR_CHANNEL, r_cmd);
+    }
 
     return true;
 }
@@ -224,7 +233,7 @@ void comms_listener_loop(void)
     {
         // read from serial until we get first byte of header 0xAB
         char sync_byte = 0;
-        do 
+        do
         {
             stdio_usb_in_chars_itf(1, &sync_byte, 1);
         } while(sync_byte != 0xAB);
@@ -263,6 +272,10 @@ void comms_listener_loop(void)
         }
 
         if (is_twist) {
+            mutex_enter_blocking(&joystick_mode_mutex);
+            joystick_mode = false;
+            mutex_exit(&joystick_mode_mutex);
+
             // Should have received good data so update motor command
             printf("Received new motor command: v=%.03f, w=%.03f\n", motor_command.trans_v, motor_command.angular_v);
             mutex_enter_blocking(&motor_command_mutex);
@@ -270,8 +283,15 @@ void comms_listener_loop(void)
             mutex_exit(&motor_command_mutex);
         }
         else {
-            rc_motor_set(LEFT_MOTOR_CHANNEL, joy_to_motor_cmd(joystick_command.left_motor));
-            rc_motor_set(RIGHT_MOTOR_CHANNEL, joy_to_motor_cmd(joystick_command.right_motor));
+            mutex_enter_blocking(&joystick_mode_mutex);
+            joystick_mode = true;
+            mutex_exit(&joystick_mode_mutex);
+
+            int left_cmd = joy_to_motor_cmd(joystick_command.left_motor);
+            int right_cmd = joy_to_motor_cmd(joystick_command.right_motor);
+            printf("left: %d, right: %d\n", left_cmd, right_cmd);
+            rc_motor_set(LEFT_MOTOR_CHANNEL, left_cmd * LEFT_MOTOR_POL);
+            rc_motor_set(RIGHT_MOTOR_CHANNEL, right_cmd * RIGHT_MOTOR_POL);
         }
 
         sleep_us(1); // brief sleep to allow FIFO to flush
@@ -300,6 +320,7 @@ int main()
     // launch the other core's comm loop
     printf("starting comms on core 1...\r\n");
     mutex_init(&motor_command_mutex);
+    mutex_init(&joystick_mode_mutex);
     multicore_launch_core1(comms_listener_loop);
 
     // wait for other core to get rolling

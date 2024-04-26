@@ -19,6 +19,8 @@
 #define MBOT_MAIN_LOOP_HZ 25.0 // 50 hz loop
 #define MBOT_MAIN_LOOP_PERIOD (1.0f / MBOT_MAIN_LOOP_HZ)
 
+#define SHOOTER_MOTOR_POL -1
+
 #define ROLLER_MOTOR_CHANNEL 3
 #define SOLENOID_CHANNEL 1
 
@@ -62,7 +64,7 @@ void comms_listener_loop(void)
         if (ball_command.shoot_ball) {
             // Perform shoot ball sequence
             int32_t top_roller_duty = -pow(2, 15);
-            rc_motor_set(ROLLER_MOTOR_CHANNEL, top_roller_duty);
+            rc_motor_set(ROLLER_MOTOR_CHANNEL, top_roller_duty * SHOOTER_MOTOR_POL);
             sleep_ms(100);
             rc_motor_set(SOLENOID_CHANNEL, pow(2, 15) - 1);
             sleep_ms(200);
@@ -72,7 +74,7 @@ void comms_listener_loop(void)
         else {
             // Set top roller
             int32_t duty_cyle = ball_command.intake * pow(2, 15) - 1;
-            rc_motor_set(ROLLER_MOTOR_CHANNEL, duty_cyle);
+            rc_motor_set(ROLLER_MOTOR_CHANNEL, duty_cyle * SHOOTER_MOTOR_POL);
         }
 
         sleep_us(1); // brief sleep to allow FIFO to flush

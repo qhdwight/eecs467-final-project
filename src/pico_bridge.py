@@ -14,8 +14,8 @@ MOTOR_CMD_TIMEOUT = 1
 def pico_bridge() -> None:
     rospy.init_node("pico_bridge")
     number = rospy.get_param("~number", 0)
-    drive_ser = serial.Serial('/dev/pico_drive', 115200)
-    ball_ser = serial.Serial('/dev/pico_ball', 115200)
+    drive_ser = serial.Serial('/dev/pico_drive_2', 115200)
+    ball_ser = serial.Serial('/dev/pico_ball_2', 115200)
     print(drive_ser)
     print(ball_ser)
 

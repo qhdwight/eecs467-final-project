@@ -2,6 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+from hockey_cup.msg import WheelVelocities
 import serial
 import struct
 import time
@@ -21,7 +22,9 @@ def pico_bridge() -> None:
     def send_motor_cmd(linear_vel, angular_vel):
         drive_ser.write(struct.pack('<BBffB', 0xAB, 0xCD, linear_vel, angular_vel, 0xEF))
         print("sending drive cmd")
-    
+    def send_drive_joy_cmd(left, right):
+        drive_ser.write(struct.pack('<BBffB', 0xAB, 0x89, left, right, 0xEF))
+        print("sending joystick drive cmd")
     def send_ball_cmd(intake_cmd, shoot_cmd):
         ball_ser.write(struct.pack('<BBfBB', 0xAB, 0xCD, intake_cmd, shoot_cmd, 0xEF))
         print('sending ball cmd')
@@ -50,8 +53,10 @@ def pico_bridge() -> None:
         send_ball_cmd(intake_cmd, shoot_cmd)
 
     cmd_vel_topic = f"cmd_vel_{number}"
+    cmd_joy_drive_topic = f"cmd_joy_drive_{number}"
     cmd_ball_topic = f"cmd_ball_{number}"
     rospy.Subscriber(cmd_vel_topic, Twist, twist_callback)
+    rospy.Subscriber(cmd_joy_drive_topic, WheelVelocities, send_drive_joy_cmd)
     rospy.Subscriber(cmd_ball_topic, BallControl, ball_callback)
     rospy.spin()
 

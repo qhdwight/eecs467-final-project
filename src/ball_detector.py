@@ -13,10 +13,13 @@ from tf2_ros import TransformBroadcaster
 broadcaster = TransformBroadcaster()
 bridge = CvBridge()
 img_pub = rospy.Publisher("/thresh_img", Image, queue_size=1)
-MIN_THRESH = (100, 130, 20)
-MAX_THRESH = (180, 255, 200)
-CAMERA_FOV_X = 82
-CAMERA_FOV_Y = 52
+MIN_THRESH = (100, 130, 40)
+MAX_THRESH = (190, 255, 200)
+CAMERA_FX = 569.21735
+CAMERA_FY = 569.15094
+CAMERA_C1 = 639.81628
+CAMERA_C2 = 352.37375
+
 CAMERA_HEIGHT = 1.4
 
 
@@ -38,12 +41,12 @@ def image_callback(data: Image) -> None:
     if len(contours) > 0:
         # find contour of ball
         for c in contours:
-            if 1000 > cv.contourArea(c) > 500:
+            if 900 > cv.contourArea(c) > 300:
                 best_cnt = c
                 break
         if best_cnt is None:
             rospy.logwarn_throttle(1, "No valid contour found")
-            img_pub.publish(bridge.cv2_to_imgmsg(cv_image))
+            img_pub.publish(bridge.cv2_to_imgmsg(thresh))
             return
         cv.drawContours(cv_image, best_cnt, -1, (0, 255, 0), 2)
 
@@ -53,10 +56,10 @@ def image_callback(data: Image) -> None:
         pY = int(M["m01"] / M["m00"])
         cv.circle(cv_image, (pX, pY), 3, (255, 255, 255), -1)
 
-        bearing_x = (pX - cv_image.shape[1] / 2) / cv_image.shape[1] * CAMERA_FOV_X
-        pos_x = tan(bearing_x * pi / 180.0) * CAMERA_HEIGHT
-        bearing_y = (cv_image.shape[0] / 2 - pY) / cv_image.shape[0] * CAMERA_FOV_Y
-        pos_y = tan(bearing_y * pi / 180.0) * CAMERA_HEIGHT
+        bearing_x = (pX - CAMERA_C1) / CAMERA_FX
+        pos_x = tan(bearing_x) * CAMERA_HEIGHT
+        bearing_y = -(pY - CAMERA_C2) / CAMERA_FY
+        pos_y = tan(bearing_y) * CAMERA_HEIGHT
 
         broadcaster.sendTransform(TransformStamped(
             header=rospy.Header(
@@ -65,14 +68,14 @@ def image_callback(data: Image) -> None:
             ),
             child_frame_id=f'ball',
             transform=geometry_msgs.msg.Transform(
-                translation=geometry_msgs.msg.Vector3(-pos_x, -pos_y, 0),
-                rotation=geometry_msgs.msg.Quaternion(*[0, 0, 0, 1]),
+                translation=geometry_msgs.msg.Vector3(pos_x, pos_y, 0),
+                rotation=geometry_msgs.msg.Quaternion(0, 0, 0, 1),
             ),
         ))
     else:
         rospy.logwarn_throttle(1, "No contours found")
     # publish img with drawn points
-    img_msg = bridge.cv2_to_imgmsg(cv_image)
+    img_msg = bridge.cv2_to_imgmsg(thresh)
     img_pub.publish(img_msg)
 
 

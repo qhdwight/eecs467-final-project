@@ -11,6 +11,8 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <numeric>
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "zed");
     ros::NodeHandle pnh{"~"};
@@ -31,59 +33,70 @@ int main(int argc, char** argv) {
         throw std::runtime_error{"Failed to open ZED camera"};
     }
 
-    sl::CameraParameters cameraParams = zed.getCameraInformation().camera_configuration.calibration_parameters.right_cam;
+    sl::CameraParameters cameraParams = zed.getCameraInformation().camera_configuration.calibration_parameters_raw.right_cam;
 
     sl::RuntimeParameters runtime_parameters;
 
     sl::Mat image;
-    cv::Mat bgr;
+
+    cv::Mat bgrDistored, bgr;
 
     auto arucoDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
     auto arucoParams = cv::aruco::DetectorParameters::create();
 
+    cv::Matx33f cameraMatrix{
+            cameraParams.fx, 0, cameraParams.cx,
+            0, cameraParams.fy, cameraParams.cy,
+            0, 0, 1};
+
+    cv::Vec<double, 4> fisheyeDistCoeffs{
+            cameraParams.disto[0],
+            cameraParams.disto[1],
+            cameraParams.disto[4],
+            cameraParams.disto[5],
+    };
+
+    cv::Matx33f optimalCameraMatrix;
+    cv::fisheye::estimateNewCameraMatrixForUndistortRectify(cameraMatrix, fisheyeDistCoeffs, cv::Size{1280, 720}, cv::Matx33f::eye(), optimalCameraMatrix, 1);
+
+    ROS_INFO_STREAM("Optimal camera matrix: " << optimalCameraMatrix);
+
     while (ros::ok()) {
         if (zed.grab(runtime_parameters) == sl::ERROR_CODE::SUCCESS) {
-            zed.retrieveImage(image, sl::VIEW::RIGHT);
+            zed.retrieveImage(image, sl::VIEW::RIGHT_UNRECTIFIED);
 
             cv::Mat bgra{static_cast<int>(image.getHeight()), static_cast<int>(image.getWidth()), CV_8UC4, image.getPtr<sl::uchar1>()};
-            cv::cvtColor(bgra, bgr, cv::COLOR_BGRA2BGR);
+            cv::cvtColor(bgra, bgrDistored, cv::COLOR_BGRA2BGR);
+
+            cv::fisheye::undistortImage(bgrDistored, bgr, cameraMatrix, fisheyeDistCoeffs, optimalCameraMatrix);
 
             std::vector<std::vector<cv::Point2f>> arucoCorners;
             std::vector<int> arucoIds;
             cv::aruco::detectMarkers(bgr, arucoDictionary, arucoCorners, arucoIds, arucoParams);
 
             for (std::size_t i = 0; i < arucoIds.size(); ++i) {
-                float sideLength = 0.09f;
-                std::array<cv::Point3f, 4> objectPoints{
-                        cv::Point3f{-sideLength / 2, -sideLength / 2, 0},
-                        cv::Point3f{sideLength / 2, -sideLength / 2, 0},
-                        cv::Point3f{sideLength / 2, sideLength / 2, 0},
-                        cv::Point3f{-sideLength / 2, sideLength / 2, 0},
-                };
-                cv::Matx33f cameraMatrix{
-                        cameraParams.fx, 0, cameraParams.cx,
-                        0, cameraParams.fy, cameraParams.cy,
-                        0, 0, 1};
+                cv::Point2f center = std::accumulate(arucoCorners[i].begin(), arucoCorners[i].end(), cv::Point2f{}) / 4;
 
-                cv::Vec3f rvec;
-                cv::Vec3f tvec;
-                cv::solvePnP(objectPoints, arucoCorners[i], cameraMatrix, cv::noArray(), rvec, tvec);
+                cv::Point2f vector = arucoCorners[i][1] - arucoCorners[i][0];
+                float angle = -std::atan2(vector.y, vector.x) + M_PI;
 
-                float angle = cv::norm(rvec);
-                cv::Vec3f axis = rvec / angle;
-
-                axis *= -1;
-                tvec[0] *= -1;
+                constexpr float CAMERA_HEIGHT = 1.4 - 0.16;
+                float fx = optimalCameraMatrix(0, 0);
+                float fy = optimalCameraMatrix(1, 1);
+                float cx = optimalCameraMatrix(0, 2);
+                float cy = optimalCameraMatrix(1, 2);
+                float bearingX = (center.x - cx) / fx;
+                float bearingY = -(center.y - cy) / fy;
+                float positionX = std::tan(bearingX) * CAMERA_HEIGHT;
+                float positionY = std::tan(bearingY) * CAMERA_HEIGHT;
 
                 geometry_msgs::TransformStamped tf;
                 tf.header.stamp = ros::Time::now();
                 tf.header.frame_id = "map";
                 tf.child_frame_id = "bot_" + std::to_string(arucoIds[i]);
-                tf.transform.translation.x = tvec[0];
-                tf.transform.translation.y = tvec[1];
-                tf.transform.rotation.x = axis[0] * std::sin(angle / 2);
-                tf.transform.rotation.y = axis[1] * std::sin(angle / 2);
-                tf.transform.rotation.z = axis[2] * std::sin(angle / 2);
+                tf.transform.translation.x = positionX;
+                tf.transform.translation.y = positionY;
+                tf.transform.rotation.z = std::sin(angle / 2);
                 tf.transform.rotation.w = std::cos(angle / 2);
                 broadcaster.sendTransform(tf);
             }

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from geometry_msgs.msg import Twist
-from roboticstoolbox import ReedsSheppPlanner
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 from transforms import *
 
@@ -22,7 +21,6 @@ def motion_planner() -> None:
     cmd_vel_topic = f'cmd_vel_{number}'
     cmd_vel_pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=1)
 
-    planner = ReedsSheppPlanner(curvature=3.0)
 
     def control_law(bot_in_map: SE2, goal_in_map: SE2) -> Twist:
         twist = goal_in_map - bot_in_map

@@ -2,7 +2,7 @@
     <arg name="play" default="true"/>
     <arg name="simulator" default="true"/>
     <arg name="ground_truth" default="false"/>
-    <arg name="zed" default="false"/>
+    <arg name="zed" default="true"/>
 
     <group if="$(arg simulator)">
         <node name="simulator" pkg="hockey_cup" type="simulator.py" output="screen">

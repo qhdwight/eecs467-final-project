@@ -1,7 +1,7 @@
  <launch>
     <arg name="number" default="0"/>
     <arg name="simulator" default="false"/>
-    <arg name="remote" default="false"/>
+    <arg name="remote" default="true"/>
 
     <group unless="$(arg remote)">
         <node if="$(arg simulator)" name="diff_drive_$(arg number)" pkg="hockey_cup" type="diff_drive.py" output="screen">

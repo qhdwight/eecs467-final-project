@@ -26,7 +26,7 @@
 
     <group unless="$(arg ground_truth)">
         <node unless="$(arg zed)" name="bot_detector" pkg="hockey_cup" type="bot_detector.py" output="screen"/>
-        <node name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
+        <node unless="$(arg zed)" name="ball_detector" pkg="hockey_cup" type="ball_detector.py" output="screen"/>
     </group>
 
     <node if="$(arg play)" name="game" pkg="hockey_cup" type="game.py" output="screen"/>

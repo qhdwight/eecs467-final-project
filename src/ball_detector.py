@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from math import tan, pi
+from math import tan
 
 import cv2 as cv
 import geometry_msgs.msg
@@ -13,12 +13,13 @@ from tf2_ros import TransformBroadcaster
 broadcaster = TransformBroadcaster()
 bridge = CvBridge()
 img_pub = rospy.Publisher("/thresh_img", Image, queue_size=1)
+
 MIN_THRESH = (100, 130, 40)
 MAX_THRESH = (190, 255, 200)
 CAMERA_FX = 569.21735
 CAMERA_FY = 569.15094
-CAMERA_C1 = 639.81628
-CAMERA_C2 = 352.37375
+CAMERA_CX = 639.81628
+CAMERA_CY = 352.37375
 
 CAMERA_HEIGHT = 1.4
 
@@ -56,9 +57,9 @@ def image_callback(data: Image) -> None:
         pY = int(M["m01"] / M["m00"])
         cv.circle(cv_image, (pX, pY), 3, (255, 255, 255), -1)
 
-        bearing_x = (pX - CAMERA_C1) / CAMERA_FX
+        bearing_x = (pX - CAMERA_CX) / CAMERA_FX
         pos_x = tan(bearing_x) * CAMERA_HEIGHT
-        bearing_y = -(pY - CAMERA_C2) / CAMERA_FY
+        bearing_y = -(pY - CAMERA_CY) / CAMERA_FY
         pos_y = tan(bearing_y) * CAMERA_HEIGHT
 
         broadcaster.sendTransform(TransformStamped(

@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+
 from pyPS4Controller.controller import Controller
 import numpy as np
 import rospy
 from hockey_cup.msg import WheelVelocities
+from hockey_cup.msg import BallControl
 
 L_DOWN_THRESHOLD = 2580
 L_UP_THRESHOLD = -259
@@ -15,7 +18,7 @@ MIN_LIMIT = -np.power(2, 15) + 1
 latest_left = 0
 latest_right = 0
 
-rospy.init_node("pico_bridge")
+rospy.init_node("teleop")
 number = rospy.get_param("~number", 0)
 cmd_joy_drive_topic = f"cmd_joy_drive_{number}"
 cmd_ball_topic = f"cmd_ball_{number}"

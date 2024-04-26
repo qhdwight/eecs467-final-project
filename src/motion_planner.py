@@ -7,6 +7,10 @@ from roboticstoolbox import ReedsSheppPlanner
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 from transforms import *
 
+FIELD_LENGTH = 2.44
+FIELD_WIDTH = 1.22
+BUFFER = 0.1
+
 
 def motion_planner() -> None:
     rospy.init_node("motion_planner")
@@ -57,7 +61,7 @@ def motion_planner() -> None:
         else:
             to_goal_pose = SE2(goal_in_map.x(), goal_in_map.y(), np.arctan2(bot_to_goal[1], bot_to_goal[0]))
             vx, vy, w = (to_goal_pose - bot_in_map).coeffs()
-            if abs(w) > 0.6:
+            if abs(w) > 0.4:
                 # Rotate towards the goal
                 return Twist(
                     angular=Vector3(z=np.clip(w * 4, -MAX_ANGULAR, MAX_ANGULAR))
@@ -79,6 +83,13 @@ def motion_planner() -> None:
         try:
             goal_in_map = to_se2(tf2_buffer.lookup_transform("map", f"goal_{number}", rospy.Time(0)))
             bot_in_map = to_se2(tf2_buffer.lookup_transform("map", f"bot_{number}", rospy.Time(0)))
+
+            goal_in_map.coeffs()[0] = np.clip(goal_in_map.coeffs()[0],
+                                              -FIELD_LENGTH / 2 + BUFFER,
+                                              FIELD_LENGTH / 2 - BUFFER)
+            goal_in_map.coeffs()[1] = np.clip(goal_in_map.coeffs()[1],
+                                              -FIELD_WIDTH / 2 + BUFFER,
+                                              FIELD_WIDTH / 2 - BUFFER)
 
             # if se2_within(bot_in_map, goal_in_map):
             #     rospy.loginfo_throttle(1, "Reached target")

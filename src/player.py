@@ -107,24 +107,13 @@ def player() -> None:
 
         is_ball_chilling = np.isfinite(game_state.ball_speed) and game_state.ball_speed < BALL_CHILL_SPEED
         is_ball_on_our_side = ball_in_map is not None and int(ball_in_map.x() < 0) == bot_number
+        is_ball_stowed_or_close = is_ball_old or (
+                bot_in_map is not None and np.linalg.norm(ball_in_map.translation() - bot_in_map.translation()) < 0.2
+        )
 
         if state == PlayerState.RETRIEVING:
-            if is_ball_old:
+            if is_ball_stowed_or_close:
                 state = PlayerState.GOING_TO_SHOOT
-                # # Some bot has the ball (OR pathological case it is covered)
-                # if ball_in_map is not None:
-                #     px, _, _ = (ball_in_map - bot_in_map).coeffs()
-                #     we_have_ball = -0.1 < px < 0.2
-                #     if we_have_ball:
-                #         rospy.loginfo("We retrieved the ball!")
-                #         rospy.sleep(1.0)
-                #         state = PlayerState.GOING_TO_SHOOT
-                #     else:
-                #         rospy.logwarn(
-                #             f"Retrieval failed and we lost the ball: {ball_in_map.translation()} {ball_in_map.translation()} {(ball_in_map - bot_in_map).coeffs()}")
-                #         state = PlayerState.BLOCKING
-                # else:
-                #     rospy.logerr("Started with ball covered")
             if not is_ball_on_our_side:
                 rospy.logwarn("Ball is not on our side anymore")
                 state = PlayerState.BLOCKING
@@ -132,7 +121,7 @@ def player() -> None:
             if is_ball_on_our_side and is_ball_chilling:
                 state = PlayerState.RETRIEVING
         elif state == PlayerState.GOING_TO_SHOOT:
-            if is_ball_old:
+            if is_ball_stowed_or_close:
                 is_at_goal = se2_within(goal_pose, bot_in_map)
                 if is_at_goal:
                     time_at_goal_ticks += 1
@@ -140,16 +129,13 @@ def player() -> None:
                         state = PlayerState.SHOOTING
                         time_at_goal_ticks = 0
             else:
-                px, _, _ = (ball_in_map - bot_in_map).coeffs()
-                print(px)
-                if px > 0.2 or px < 0:
-                    rospy.logwarn(f"Ball popped out while going to shoot: {px}")
-                    if is_ball_on_our_side:
-                        state = PlayerState.RETRIEVING
-                    else:
-                        state = PlayerState.BLOCKING
+                rospy.logwarn(f"Ball popped out while going to shoot")
+                if is_ball_on_our_side:
+                    state = PlayerState.RETRIEVING
+                else:
+                    state = PlayerState.BLOCKING
         elif state == PlayerState.SHOOTING:
-            if ball_in_map is not None:
+            if not is_ball_stowed_or_close:
                 state = PlayerState.BLOCKING
 
         is_transition = state != prev_state
@@ -161,6 +147,7 @@ def player() -> None:
         if state == PlayerState.BLOCKING:
             # TODO compute trajectory to block the ball
             goal_pose = compute_block_pose(ball_in_map)
+            ball_control_pub.publish(BallControl(0, 0))
         elif state == PlayerState.RETRIEVING:
             angle_to_ball = math.atan2(*(ball_in_map.translation() - bot_in_map.translation())[::-1])
             goal_pose = SE2(ball_in_map.x(), ball_in_map.y(), angle_to_ball)

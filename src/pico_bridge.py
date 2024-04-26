@@ -23,7 +23,7 @@ def pico_bridge() -> None:
         print("sending drive cmd")
     
     def send_ball_cmd(intake_cmd, shoot_cmd):
-        ball_ser.write(struct.pack('<BBBBB', 0xAB, 0xCD, intake_cmd, shoot_cmd, 0xEF))
+        ball_ser.write(struct.pack('<BBfBB', 0xAB, 0xCD, intake_cmd, shoot_cmd, 0xEF))
         print('sending ball cmd')
 
     def timer_cb(_):

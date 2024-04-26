@@ -58,7 +58,7 @@ void comms_listener_loop(void)
         }
 
         // Should have received good data so update motor command
-        printf("Received new ball command: intake=%u, shoot=%u\n", ball_command.intake, ball_command.shoot_ball);
+        printf("Received new ball command: intake=%u, shoot=%,03f\n", ball_command.intake, ball_command.shoot_ball);
         if (ball_command.shoot_ball) {
             // Perform shoot ball sequence
             int32_t top_roller_duty = -pow(2, 15);
@@ -71,7 +71,7 @@ void comms_listener_loop(void)
         }
         else {
             // Set top roller
-            int32_t duty_cyle = ball_command.intake ? pow(2, 15) - 1 : 0;
+            int32_t duty_cyle = ball_command.intake * pow(2, 15) - 1;
             rc_motor_set(ROLLER_MOTOR_CHANNEL, duty_cyle);
         }
 

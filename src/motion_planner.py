@@ -87,29 +87,6 @@ def motion_planner() -> None:
                                               -FIELD_WIDTH / 2 + BUFFER,
                                               FIELD_WIDTH / 2 - BUFFER)
 
-            # if se2_within(bot_in_map, goal_in_map):
-            #     rospy.loginfo_throttle(1, "Reached target")
-            #     cmd_vel = Twist()
-            # else:
-            #     if prev_goal_in_map is None or not se2_within(prev_goal_in_map, goal_in_map):
-            #         rospy.loginfo(f"New goal: {se2_to_np(goal_in_map)}")
-            #         path, status = planner.query(se2_to_np(bot_in_map), se2_to_np(goal_in_map))
-            #
-            #         prev_goal_in_map = goal_in_map
-            #
-            #     for i, link in enumerate(path):
-            #         tf2_broadcast.sendTransform(to_tf(SE2(*link), "map", f"setpoint_{number}_{i}"))
-            #
-            #     segment_distances = [
-            #         np.linalg.norm((SE2(*path[i]) - bot_in_map).coeffs(), ord=2)
-            #         for i in range(len(path))
-            #     ]
-            #     look_ahead = 2
-            #     target_index = min(np.argmin(segment_distances) + look_ahead, len(path) - 1)
-            #     target_pose = SE2(*path[target_index])
-            #
-            #     cmd_vel = control_law(bot_in_map, target_pose)
-
             cmd_vel = rtr(bot_in_map, goal_in_map)
 
             cmd_vel_pub.publish(cmd_vel)

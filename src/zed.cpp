@@ -161,17 +161,7 @@ int main(int argc, char** argv) {
                 msg.data = {bgr.data, bgr.data + bgr.total() * bgr.elemSize()};
                 pub.publish(msg);
             }
-
-            // sensor_msgs::Image threshImg;
-            // threshImg.header.stamp = ros::Time::now();
-            // threshImg.height = thresh.rows;
-            // threshImg.width = thresh.cols;
-            // threshImg.encoding = "mono8";
-            // threshImg.is_bigendian = false;
-            // threshImg.step = thresh.step;
-            // threshImg.data = {thresh.data, thresh.data + thresh.total()};
-            // debugPub.publish(threshImg);
-
+            
             if (debugPub.getNumSubscribers()) {
                 cv::aruco::drawDetectedMarkers(bgr, arucoCorners, arucoIds);
                 cv::drawKeypoints(bgr, keypoints, bgr, {0, 0, 255}, cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);

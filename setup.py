@@ -8,7 +8,6 @@ d = generate_distutils_setup(
     scripts=[
         "src/ball_detector.py",
         "src/bot_detector.py",
-        "src/usb_camera.py",
         "src/simulator.py",
         "src/diff_drive.py",
     ],
